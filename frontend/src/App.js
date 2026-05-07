@@ -77,6 +77,9 @@ const StudentBaseline = lazy(
   () => import('./pages/initiations/baseline/StudentBaselineReport'),
 )
 
+// new
+
+
 const SelfAssessmentBaseline = lazy(() => import('./pages/initiations/baseline/SelfAssessmentBaseline'))
 
 // 🟢 1. NAYA DASHBOARD COMPONENT IMPORT KIYA HAI
@@ -94,6 +97,18 @@ const TeacherIRITeachersList = lazy(
 )
 const TeacherIRIAssessment = lazy(
   () => import('./pages/assessment/teacherIRI/TeacherIRIAssessment'),
+)
+
+// new assessments
+const SafeSpaces = lazy(
+	() => import('./pages/newAssesment/safeSpaces/SafeSpaces'),
+)
+const SELCompetency = lazy(
+	() => import('./pages/newAssesment/SELCompetency/SELAssessment'),
+)
+const Pulse = lazy(() => import('./pages/newAssesment/pulse/Pulse'))
+const HeartEducators = lazy(
+	() => import('./pages/newAssesment/heartEducators/TeacherPSMain'),
 )
 const TeacherProfilingAssessment = lazy(
   () =>
@@ -121,6 +136,7 @@ const SendChecklist = lazy(
 )
 const StudentIEP = lazy(() => import('./pages/initiations/IEP/StudentIEP'))
 const GandT = lazy(() => import('./pages/initiations/gandt/ComingSoon'))
+
 
 const App = () => {
   const dispatch = useDispatch()
@@ -194,7 +210,162 @@ const App = () => {
     </Box>
   )
 
-  return (
+ // return (
+//     <ThemeProvider theme={appliedTheme}>
+//       <CssBaseline />
+//       <BrowserRouter>
+//         <Routes>
+          
+//           <Route
+//             path={routePaths.studentSelfAssessment}
+//             element={
+//               <Suspense fallback={loading}>
+//                 <SelfAssessmentBaseline />
+//               </Suspense>
+//             }
+//           />
+
+//           <Route
+//             path={routeConstants.root}
+//             element={
+//               <Suspense fallback={loading}>
+//                 <ProtectedRoute>
+//                   <ApplicationRoot />
+//                 </ProtectedRoute>
+//               </Suspense>
+//             }
+//           >
+//             <Route
+//               path={routeConstants.dashboard}
+//               element={
+//                 <Suspense fallback={loading}>
+//                   <Dashboard />
+//                 </Suspense>
+//               }
+//             >
+//               {/* Aapke existing dashboard routes... */}
+//               <Route path={routePaths.home} element={<Suspense fallback={loading}><DashboardContent /></Suspense>} />
+//               <Route path={routePaths.counsellors} element={<Suspense fallback={loading}><Counsellors /></Suspense>} />
+//               <Route path={routePaths.academicSchools} element={<Suspense fallback={loading}><Schools /></Suspense>} />
+//               <Route path={routePaths.academicStudents} element={<Suspense fallback={loading}><Students /></Suspense>} />
+//               <Route path={routePaths.academicClassrooms} element={<Suspense fallback={loading}><ClassRooms /></Suspense>} />
+//               <Route path={routePaths.academicTeachers} element={<Suspense fallback={loading}><Teachers /></Suspense>} />
+//               <Route path={routePaths.initiationsIndividualCase} element={<Suspense fallback={loading}><IndividualCase /></Suspense>} />
+//               <Route path={routePaths.initiationsObservation} element={<Suspense fallback={loading}><Observation /></Suspense>} />
+//               <Route path={routePaths.initiationsBaseline} element={<Suspense fallback={loading}><Baseline /></Suspense>} />
+              
+//               {/* 🟢 2. NAYA ROUTE YAHAN ADD KIYA HAI */}
+//               <Route 
+//                 path={routePaths.initiationsSelfAssessmentDashboard} 
+//                 element={
+//                   <Suspense fallback={loading}>
+//                     <SelfAssessmentDashboard />
+//                   </Suspense>
+//                 } 
+//               />
+
+//               <Route path={`${routePaths.initiationsStudentBaseline}/:row_id`} element={<Suspense fallback={loading}><StudentBaseline /></Suspense>} />
+//               <Route path={routePaths.initiationsSELCurriculumTracker} element={<Suspense fallback={loading}><Sel /></Suspense>} />
+//               <Route path={routePaths.initiationsStudentCope} element={<Suspense fallback={loading}><StudentCope /></Suspense>} />
+//               <Route path={routePaths.assessmentTeacherIRI} element={<Suspense fallback={loading}><TeacherIRI /></Suspense>} />
+//               <Route path={`${routePaths.assessmentTeacherIRITeachersList}/:row_id`} element={<Suspense fallback={loading}><TeacherIRITeachersList /></Suspense>} />
+//               <Route path={routePaths.assessmentTeacherIRIAssessment} element={<Suspense fallback={loading}><TeacherIRIAssessment /></Suspense>} />
+//               <Route path={routePaths.schoolIRIAnalyticsReport} element={<Suspense fallback={loading}><SchoolIRIAnalytics /></Suspense>} />
+//               <Route path={routePaths.specificSchoolIRIDetails} element={<Suspense fallback={loading}><SpecificSchoolIRIDetails /></Suspense>} />
+//               <Route path={routePaths.initiationsstudentWellBeing} element={<Suspense fallback={loading}><StudentWellBeing /></Suspense>} />
+//               <Route path={`${routePaths.specificStudentWellBeing}/:row_id`} element={<Suspense fallback={loading}><SpecificStudentWellBeing /></Suspense>} />
+//               <Route path={`${routePaths.studentWellBeingAnalyticsSchools}`} element={<Suspense fallback={loading}><studentWellBeingAnalyticsSchools /></Suspense>} />
+              
+//               <Route index element={<Navigate to={routePaths.home} replace />} />
+              
+//               <Route path={routePaths.TeacherProfilingAssessment} element={<Suspense fallback={loading}><TeacherProfilingSchoolList /></Suspense>} />
+//               <Route path={`${routePaths.TeacherProfilingAssessment}/:row_id`} element={<Suspense fallback={loading}><TeacherProfilingTeachersList /></Suspense>} />
+//               <Route path={routePaths.TeacherProfilingAssessmentDetails} element={<Suspense fallback={loading}><TeacherProfilingAssessment /></Suspense>} />
+//               <Route path={routePaths.specificSchoolProfilingDetails} element={<Suspense fallback={loading}><SpecificSchoolProfilingDetails /></Suspense>} />
+//               <Route path={routePaths.schoolProfilingAnalyticsReport} element={<Suspense fallback={loading}><SchoolWiseProfilingAnalytics /></Suspense>} />
+//               <Route path={routePaths.initiationsSendChecklist} element={<Suspense fallback={loading}><SendChecklist /></Suspense>} />
+//               <Route path={routePaths.AddStudentChecklist} element={<Suspense fallback={loading}><AddStudentChecklist /></Suspense>} />
+//               <Route path={routePaths.studentChecklistAnalytics} element={<Suspense fallback={loading}><SendChecklistAnalytics /></Suspense>} />
+//               <Route path={routePaths.initiationsIEP} element={<Suspense fallback={loading}><StudentIEP /></Suspense>} />
+//               <Route path={routePaths.initiationsAddIEP} element={<Suspense fallback={loading}><AddIEP /></Suspense>} />
+//               <Route path={`${routePaths.initiationsIEP}/:row_id`} element={<Suspense fallback={loading}><EditIEP /></Suspense>} />
+//               <Route path={routePaths.initiationsGandT} element={<Suspense fallback={loading}><GandT /></Suspense>} />
+//               <Route path={routePaths.gandtTemplates} element={<Suspense fallback={loading}><GandTTemplateList /></Suspense>} />
+//               <Route path={routePaths.gandtTemplateAdd} element={<Suspense fallback={loading}><GandTTemplateForm /></Suspense>} />
+//               <Route path={routePaths.gandtTemplateEdit} element={<Suspense fallback={loading}><GandTTemplateForm /></Suspense>} />
+//               <Route path={routePaths.gandtTemplateView} element={<Suspense fallback={loading}><GandTTemplateView /></Suspense>} />
+//               <Route path={routePaths.gandtAssignments} element={<Suspense fallback={loading}><GandTAssignmentList /></Suspense>} />
+              
+//               <Route path='*' element={<Suspense fallback={loading}><PageNotFound /></Suspense>} />
+              
+//               <Route path={routePaths.teacherMsgPage} element={<Suspense fallback={loading}><EmptyTeacherPage /></Suspense>} />
+//             </Route>
+//           </Route>
+//           <Route
+//             path={routeConstants.auth}
+//             element={
+//               <Suspense fallback={loading}>
+//                 <Authentication />
+//               </Suspense>
+//             }
+//           >
+//             	<Route
+// 								path={routePaths.newAssessmentSafeSpaces}
+// 								element={
+// 									<Suspense fallback={loading}>
+// 										<SafeSpaces />
+// 									</Suspense>
+// 								}
+// 							/>
+// 							<Route
+// 								path={routePaths.newAssessmentSELCompetency}
+// 								element={
+// 									<Suspense fallback={loading}>
+// 										<SELCompetency />
+// 									</Suspense>
+// 								}
+// 							/>
+// 							<Route
+// 								path={routePaths.newAssessmentPulse}
+// 								element={
+// 									<Suspense fallback={loading}>
+// 										<Pulse />
+// 									</Suspense>
+// 								}
+// 							/>
+// 							<Route
+// 								path={routePaths.newAssessmentHeart}
+// 								element={
+// 									<Suspense fallback={loading}>
+// 										<HeartEducators />
+// 									</Suspense>
+// 								}
+//                 />
+//             <Route path={routeConstants.login} exact element={<Suspense fallback={loading}><Login /></Suspense>} />
+//             <Route path={routeConstants.accountRecovery} element={<Suspense fallback={loading}><AccountRecovery /></Suspense>} />
+//             <Route path={routeConstants.createNewPassword} element={<Suspense fallback={loading}><CreateNewPassword /></Suspense>} />
+//             <Route path={routeConstants.activateAccount} element={<Suspense fallback={loading}><ActivateAccount /></Suspense>} />
+//             <Route index element={<Navigate to={routePaths.login} replace />} />
+//             <Route path='*' element={<Suspense fallback={loading}><PageNotFound /></Suspense>} />
+//           </Route>
+//           <Route index element={<Navigate to={routePaths.login} replace />} />
+//           <Route path='*' element={<Suspense fallback={loading}><PageNotFound /></Suspense>} />
+//         </Routes>
+//       </BrowserRouter>
+//       {viewToast && (
+//         <Toast
+//           title={title}
+//           subTitle={subTitle}
+//           isSuccess={isSuccess}
+//           anchorOrigin={anchorOrigin}
+//           direction={direction}
+//         />
+//       )}
+//       {isLoading && loder}
+//     </ThemeProvider>
+//   )
+// }
+return (
     <ThemeProvider theme={appliedTheme}>
       <CssBaseline />
       <BrowserRouter>
@@ -238,7 +409,6 @@ const App = () => {
               <Route path={routePaths.initiationsObservation} element={<Suspense fallback={loading}><Observation /></Suspense>} />
               <Route path={routePaths.initiationsBaseline} element={<Suspense fallback={loading}><Baseline /></Suspense>} />
               
-              {/* 🟢 2. NAYA ROUTE YAHAN ADD KIYA HAI */}
               <Route 
                 path={routePaths.initiationsSelfAssessmentDashboard} 
                 element={
@@ -260,6 +430,13 @@ const App = () => {
               <Route path={`${routePaths.specificStudentWellBeing}/:row_id`} element={<Suspense fallback={loading}><SpecificStudentWellBeing /></Suspense>} />
               <Route path={`${routePaths.studentWellBeingAnalyticsSchools}`} element={<Suspense fallback={loading}><studentWellBeingAnalyticsSchools /></Suspense>} />
               
+              {/* 🟢 MAINE YAHAN NAYE ASSESSMENTS MOVE KAR DIYE HAIN (Sahi Jagah) 🟢 */}
+              <Route path={routePaths.newAssessmentSafeSpaces} element={<Suspense fallback={loading}><SafeSpaces /></Suspense>} />
+              <Route path={routePaths.newAssessmentSELCompetency} element={<Suspense fallback={loading}><SELCompetency /></Suspense>} />
+              <Route path={routePaths.newAssessmentPulse} element={<Suspense fallback={loading}><Pulse /></Suspense>} />
+              <Route path={routePaths.newAssessmentHeart} element={<Suspense fallback={loading}><HeartEducators /></Suspense>} />
+              {/* ---------------------------------------------------------------- */}
+
               <Route index element={<Navigate to={routePaths.home} replace />} />
               
               <Route path={routePaths.TeacherProfilingAssessment} element={<Suspense fallback={loading}><TeacherProfilingSchoolList /></Suspense>} />
@@ -285,6 +462,8 @@ const App = () => {
               <Route path={routePaths.teacherMsgPage} element={<Suspense fallback={loading}><EmptyTeacherPage /></Suspense>} />
             </Route>
           </Route>
+
+          {/* 👇 AUTH SECTION (Ab yahan sirf login wale pages hain) 👇 */}
           <Route
             path={routeConstants.auth}
             element={
@@ -300,6 +479,7 @@ const App = () => {
             <Route index element={<Navigate to={routePaths.login} replace />} />
             <Route path='*' element={<Suspense fallback={loading}><PageNotFound /></Suspense>} />
           </Route>
+          
           <Route index element={<Navigate to={routePaths.login} replace />} />
           <Route path='*' element={<Suspense fallback={loading}><PageNotFound /></Suspense>} />
         </Routes>

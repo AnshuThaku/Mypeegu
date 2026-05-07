@@ -97,6 +97,34 @@ export const localizationConstants = {
 	editUser: 'Edit User',
 	deleteUser: 'Delete User',
 
+	// new 
+	// new assessment
+	// New Assessment Labels
+	newAssessment: 'New Assessment',
+	safeSpaces: 'Safe Spaces',
+	selCompetency: 'SEL Competency Assessment',
+	pulseDigitalWellbeing: 'Pulse (Digital Wellbeing)',
+	heartEducators: 'HEART (Educators)',
+
+	// Sub-labels & Descriptions
+	grades3to5: 'Grades 3-5',
+	grades6to12: 'Grades 6-12',
+	educatorPsychologicalSafety: 'Educator Psychological Safety',
+	digitalWellbeingCheckIn: 'Digital Wellbeing Check-In',
+
+	// H.E.A.R.T Model Dimensions
+	honesty: 'Honesty',
+	empathy: 'Empathy',
+	autonomy: 'Autonomy',
+	respect: 'Respect',
+	trust: 'Trust',
+
+	// Safe Spaces Domains
+	emotionalSafety: 'Emotional Safety',
+	socialBelonging: 'Social Belonging',
+	physicalSafety: 'Physical Safety',
+	adultSupport: 'Adult Support',
+
 	activateYourAccount: 'Activate Your Account - Set Up a New Password',
 	welcomeAdmin:
 		"Welcome, Counsellor ! It's time to activate your MyPeegu Dashboard account by setting up a new password.",

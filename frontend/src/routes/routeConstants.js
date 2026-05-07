@@ -82,4 +82,10 @@ export const routePaths = {
 	teacherMsgPage: '/dashboard/teacherMsgPage',
 	studentSelfAssessment: '/student-self-assessment',
 	initiationsSelfAssessmentDashboard: '/dashboard/initiations/self-assessment-dashboard',
+	//new
+	// new assessments
+	newAssessmentSafeSpaces: '/dashboard/assessment/safe-spaces',
+    newAssessmentSELCompetency: '/dashboard/assessment/sel-competency',
+    newAssessmentPulse: '/dashboard/assessment/pulse',
+    newAssessmentHeart: '/dashboard/assessment/heart-educators',
 }
