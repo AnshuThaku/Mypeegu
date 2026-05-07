@@ -1056,6 +1056,7 @@ const SELPdfViewDialog = ({ open, onClose }) => {
       fullScreen={fileViewMode}
       open={open}
       onClose={fileViewMode ? handleBackToList : onClose}
+      scroll="paper"
       PaperProps={{
         sx: {
           ...(fileViewMode
@@ -1067,13 +1068,15 @@ const SELPdfViewDialog = ({ open, onClose }) => {
             : {
                 borderRadius: '16px',
                 boxShadow: '0 20px 60px rgba(21,101,192,0.15), 0 0 0 1px rgba(21,101,192,0.08)',
-                overflow: 'hidden', maxHeight: '86vh',
+                overflow: 'hidden', 
+                maxHeight: { xs: '95vh', sm: '86vh' }, // 🔥 Mobile Responsive Height
+                margin: { xs: '10px', sm: '32px' },
                 display: 'flex', flexDirection: 'column',
               }),
         },
       }}
     >
-      {/* Toolbar */}
+      {/* Toolbar for Viewer */}
       {fileViewMode && (
         <Box sx={{ flexShrink: 0, backgroundColor: '#fff', zIndex: 10, boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
           <SELpdfViewTitle
@@ -1092,7 +1095,7 @@ const SELPdfViewDialog = ({ open, onClose }) => {
       )}
 
       {fileViewMode ? (
-        // ── Native Browser Viewer ──────────────────────────────────────────────
+        // ── Native Browser Viewer (Fixes 79MB load issue) ──────────────
         <Box sx={{ flexGrow: 1, display: 'flex', overflow: 'hidden', backgroundColor: '#e9e9eb' }}>
             <iframe 
               src={selectedPdfUrl} 
@@ -1105,8 +1108,8 @@ const SELPdfViewDialog = ({ open, onClose }) => {
         </Box>
 
       ) : (
-        // ── File List View ──────────────────────────────────────────────────────
-        <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '600px', flex: 1 }}>
+        // ── File List View (Responsive Fix applied here) ───────────────
+        <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', flex: 1, overflow: 'hidden' }}>
 
           {/* ── HEADER WITH FILTERS ── */}
           <Box sx={{
@@ -1197,9 +1200,12 @@ const SELPdfViewDialog = ({ open, onClose }) => {
             </Box>
           </Box>
 
-          {/* Category list rendering */}
+          {/* ── Category list rendering (Scrollable Area) ── */}
           <Box sx={{
-            flex: 1, overflowY: 'auto', px: '14px', pt: '12px', pb: '16px', backgroundColor: THEME.bg,
+            flex: 1, 
+            overflowY: 'auto', // 🔥 Prevents cutting off options on small screens
+            px: { xs: '10px', sm: '14px' }, 
+            pt: '12px', pb: '16px', backgroundColor: THEME.bg,
             '&::-webkit-scrollbar': { width: '4px' },
             '&::-webkit-scrollbar-track': { background: 'transparent' },
             '&::-webkit-scrollbar-thumb': { background: THEME.blueBorder, borderRadius: '10px' },
