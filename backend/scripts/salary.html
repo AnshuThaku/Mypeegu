@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Salary Report</title>
+
+<style>
+    body {
+        font-family: 'Segoe UI', sans-serif;
+        background: #f4f7fb;
+        margin: 0;
+        padding: 0;
+    }
+
+    .page {
+        width: 210mm;
+        min-height: 297mm;
+        margin: auto;
+        background: #fff;
+        padding: 15mm;
+        box-sizing: border-box;
+    }
+
+    h1 {
+        text-align: center;
+        margin: 5px 0;
+        font-size: 22px;
+    }
+
+    h2 {
+        text-align: center;
+        margin: 3px 0 10px;
+        font-size: 14px;
+        font-weight: normal;
+    }
+
+    .card {
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 10px;
+        margin-top: 10px;
+    }
+
+    .title {
+        font-weight: bold;
+        font-size: 14px;
+        margin-bottom: 5px;
+        color: #2c3e50;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12px;
+    }
+
+    td {
+        padding: 4px;
+        border-bottom: 1px solid #eee;
+    }
+
+    .highlight td {
+        font-weight: bold;
+        background: #f2f2f2;
+    }
+
+    .final {
+        background: #eafaf1;
+        padding: 6px;
+        margin-top: 5px;
+        font-weight: bold;
+        text-align: right;
+        border-radius: 4px;
+        font-size: 12px;
+    }
+
+    .bank {
+        background: #f9f9f9;
+        border: 1px dashed #ccc;
+        padding: 6px;
+        margin-top: 5px;
+        border-radius: 4px;
+        font-size: 11px;
+        line-height: 1.4;
+    }
+
+    .note {
+        margin-top: 10px;
+        padding: 8px;
+        background: #fff3cd;
+        border: 1px solid #ffeeba;
+        border-radius: 6px;
+        font-size: 12px;
+    }
+
+    /* PRINT SETTINGS */
+    @media print {
+        body {
+            background: none;
+        }
+        .page {
+            margin: 0;
+            box-shadow: none;
+            width: 100%;
+            min-height: auto;
+        }
+    }
+</style>
+
+</head>
+
+<body>
+
+<div class="page">
+
+    <h1>Highline Educare India Pvt Ltd</h1>
+    <h2>Salary Calculation Report (Feb & March 2026)</h2>
+
+    <!-- ANSHU -->
+    <div class="card">
+        <div class="title">Employee: ANSHU KUMAR</div>
+
+        <table>
+            <tr><td>Monthly Salary</td><td>₹2500</td></tr>
+            <tr><td>Joining Date</td><td>19 Feb 2026</td></tr>
+        </table>
+
+        <table>
+            <tr class="highlight"><td colspan="2">February</td></tr>
+            <tr><td>Per Day</td><td>₹89.29</td></tr>
+            <tr><td>Days</td><td>10</td></tr>
+            <tr><td>Salary</td><td>₹893</td></tr>
+        </table>
+
+        <table>
+            <tr class="highlight"><td colspan="2">March</td></tr>
+            <tr><td>Per Day</td><td>₹80.65</td></tr>
+            <tr><td>Days</td><td>31</td></tr>
+            <tr><td>Salary</td><td>₹2500</td></tr>
+        </table>
+
+        <div class="final">Total: ₹3393</div>
+
+        <div class="bank">
+            Bank: Union Bank of India<br>
+            A/C: 162910100093469<br>
+            IFSC: UBIN0816299
+        </div>
+    </div>
+
+    <!-- PRATIMA -->
+    <div class="card">
+        <div class="title">Employee: PRATIMA KUSHWAHA</div>
+
+        <table>
+            <tr><td>Monthly Salary</td><td>₹2500</td></tr>
+            <tr><td>Joining Date</td><td>11 March 2026</td></tr>
+        </table>
+
+        <table>
+            <tr class="highlight"><td colspan="2">March</td></tr>
+            <tr><td>Per Day</td><td>₹80.65</td></tr>
+            <tr><td>Days</td><td>21</td></tr>
+            <tr><td>Salary</td><td>₹1694</td></tr>
+        </table>
+
+        <div class="final">Total: ₹1694</div>
+
+        <div class="bank">
+            Bank: Punjab National Bank<br>
+            A/C: 2168001700056617<br>
+            IFSC: PUNB0216800
+        </div>
+    </div>
+
+    <!-- NOTE -->
+    
+</div>
+
+</body>
+</html>

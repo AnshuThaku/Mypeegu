@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trainer Registration | UPBOCW</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['DM Sans', 'sans-serif'],
+                        serif: ['Playfair Display', 'serif'],
+                    },
+                    colors: {
+                        navy: '#0f2235',
+                        teal: '#0d7a5f',
+                        gold: '#c9922a',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Custom Scrollbar for Progress Bar */
+        .progress-scroll::-webkit-scrollbar { height: 4px; }
+        .progress-scroll::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 4px; }
+        
+        /* Hide default file input */
+        .upload-input-hidden {
+            position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; z-index: 10;
+        }
+
+        /* Subtle animated background */
+        body {
+            background-color: #f8fafc;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(13,122,95,0.05) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(201,146,42,0.05) 0px, transparent 50%);
+            background-attachment: fixed;
+        }
+    </style>
+</head>
+<body class="text-slate-800 antialiased pb-20">
+
+    <div class="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-slate-200 shadow-sm progress-scroll overflow-x-auto">
+        <div class="max-w-5xl mx-auto px-4 py-4 flex justify-between items-center min-w-[600px]">
+            <div class="flex items-center group cursor-pointer" onclick="scrollToSection(0)">
+                <div id="step1" class="w-10 h-10 rounded-full flex items-center justify-center font-bold border-2 transition-all duration-300 border-teal text-white bg-teal shadow-[0_0_0_4px_rgba(13,122,95,0.15)]"><i class="fas fa-user text-sm"></i></div>
+                <span id="label1" class="ml-3 text-sm font-bold text-teal hidden sm:block">Basic Info</span>
+            </div>
+            <div id="conn1" class="flex-1 h-[2px] mx-4 bg-slate-200 transition-colors duration-300"></div>
+            
+            <div class="flex items-center group cursor-pointer" onclick="scrollToSection(1)">
+                <div id="step2" class="w-10 h-10 rounded-full flex items-center justify-center font-bold border-2 transition-all duration-300 border-slate-300 text-slate-400 bg-white group-hover:border-teal group-hover:text-teal">2</div>
+                <span id="label2" class="ml-3 text-sm font-medium text-slate-500 hidden sm:block">School Info</span>
+            </div>
+            <div id="conn2" class="flex-1 h-[2px] mx-4 bg-slate-200 transition-colors duration-300"></div>
+
+            <div class="flex items-center group cursor-pointer" onclick="scrollToSection(2)">
+                <div id="step3" class="w-10 h-10 rounded-full flex items-center justify-center font-bold border-2 transition-all duration-300 border-slate-300 text-slate-400 bg-white group-hover:border-teal group-hover:text-teal">3</div>
+                <span id="label3" class="ml-3 text-sm font-medium text-slate-500 hidden sm:block">Bank Details</span>
+            </div>
+            <div id="conn3" class="flex-1 h-[2px] mx-4 bg-slate-200 transition-colors duration-300"></div>
+            
+            <div class="flex items-center group cursor-pointer" onclick="scrollToSection(3)">
+                <div id="step4" class="w-10 h-10 rounded-full flex items-center justify-center font-bold border-2 transition-all duration-300 border-slate-300 text-slate-400 bg-white group-hover:border-teal group-hover:text-teal">4</div>
+                <span id="label4" class="ml-3 text-sm font-medium text-slate-500 hidden sm:block">Documents</span>
+            </div>
+            <div id="conn4" class="flex-1 h-[2px] mx-4 bg-slate-200 transition-colors duration-300"></div>
+            
+            <div class="flex items-center group cursor-pointer" onclick="scrollToSection(4)">
+                <div id="step5" class="w-10 h-10 rounded-full flex items-center justify-center font-bold border-2 transition-all duration-300 border-slate-300 text-slate-400 bg-white group-hover:border-teal group-hover:text-teal">5</div>
+                <span id="label5" class="ml-3 text-sm font-medium text-slate-500 hidden sm:block">Photographs</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-5xl mx-auto px-4 mt-8">
+        <form id="trainerForm" class="space-y-6">
+
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden" id="section0">
+                <div class="bg-gradient-to-r from-navy to-slate-800 px-6 py-4 flex items-center justify-between cursor-pointer select-none" onclick="toggleSection(this)">
+                    <div class="flex items-center gap-4">
+                        <div class="w-8 h-8 rounded-full bg-white/10 border border-white/20 flex items-center justify-center font-serif font-bold text-gold">1</div>
+                        <h2 class="font-serif text-lg font-semibold text-white tracking-wide">Trainer Information & Address</h2>
+                    </div>
+                    <i class="fas fa-chevron-down text-white/60 transition-transform duration-300"></i>
+                </div>
+                
+                <div class="p-6 transition-all duration-300">
+                    <h3 class="text-sm font-bold text-teal mb-4 uppercase tracking-wider border-b pb-2">Personal Details</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mb-8">
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-1">Full Name <span class="text-red-500">*</span></label>
+                            <input type="text" class="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-teal/20 focus:border-teal outline-none transition-all" placeholder="Enter full name" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-1">Father's Name <span class="text-red-500">*</span></label>
+                            <input type="text" class="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-teal/20 focus:border-teal outline-none transition-all" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-1">Mother's Name <span class="text-red-500">*</span></label>
+                            <input type="text" class="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-teal/20 focus:border-teal outline-none transition-all" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-1">Marital Status <span class="text-red-500">*</span></label>
+                            <select class="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-teal/20 focus:border-teal outline-none transition-all" required>
+                                <option value="">Select status</option>
+                                <option>Single</option>
+                                <option>Married</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-1">Date of Birth <span class="text-red-500">*</span></label>
+                            <input type="date" class="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-teal/20 focus:border-teal outline-none transition-all" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-1">Mobile Number <span class="text-red-500">*</span></label>
+                            <input type="tel" class="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-teal/20 focus:border-teal outline-none transition-all" placeholder="10-digit number" maxlength="10" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-1">Emergency Contact <span class="text-red-500">*</span></label>
+                            <input type="tel" class="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-teal/20 focus:border-teal outline-none transition-all" placeholder="10-digit number" maxlength="10" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-1">PAN Card Number <span class="text-red-500">*</span></label>
+                            <input type="text" class="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-teal/20 focus:border-teal outline-none transition-all uppercase" placeholder="ABCDE1234F" maxlength="10" required>
+                        </div>
+                    </div>
+
+                    <h3 class="text-sm font-bold text-teal mb-4 uppercase tracking-wider border-b pb-2">Trainer Address Details</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                        <div class="lg:col-span-3">
+                            <label class="block text-sm font-semibold text-slate-700 mb-1">Full Address <span class="text-red-500">*</span></label>
+                            <input type="text" class="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-teal/20 focus:border-teal outline-none transition-all" placeholder="House/Flat No., Street, Locality" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-1">State <span class="text-red-500">*</span></label>
+                            <input type="text" class="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-teal/20 focus:border-teal outline-none transition-all" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-1">District <span class="text-red-500">*</span></label>
+                            <input type="text" class="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-teal/20 focus:border-teal outline-none transition-all" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-1">Pincode <span class="text-red-500">*</span></label>
+                            <input type="text" class="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-teal/20 focus:border-teal outline-none transition-all" maxlength="6" required>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden" id="section1">
+                <div class="bg-gradient-to-r from-navy to-slate-800 px-6 py-4 flex items-center justify-between cursor-pointer select-none" onclick="toggleSection(this)">
+                    <div class="flex items-center gap-4">
+                        <div class="w-8 h-8 rounded-full bg-white/10 border border-white/20 flex items-center justify-center font-serif font-bold text-gold">2</div>
+                        <h2 class="font-serif text-lg font-semibold text-white tracking-wide">School & SPOC Details</h2>
+                    </div>
+                    <i class="fas fa-chevron-down text-white/60 transition-transform duration-300"></i>
+                </div>
+                
+                <div class="p-6 bg-slate-50/50">
+                    <h3 class="text-sm font-bold text-teal mb-4 uppercase tracking-wider border-b pb-2">School Information</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mb-8">
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-1">School Name <span class="text-red-500">*</span></label>
+                            <input type="text" class="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-teal/20 focus:border-teal outline-none transition-all" placeholder="Enter school name" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-1">UDISE Code <span class="text-red-500">*</span></label>
+                            <input type="text" class="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-teal/20 focus:border-teal outline-none transition-all uppercase" placeholder="11-digit code" maxlength="11" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-1">Principal Name <span class="text-red-500">*</span></label>
+                            <input type="text" class="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-teal/20 focus:border-teal outline-none transition-all" required>
+                        </div>
+                    </div>
+
+                    <h3 class="text-sm font-bold text-teal mb-4 uppercase tracking-wider border-b pb-2">School Address</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mb-8">
+                        <div class="lg:col-span-3">
+                            <label class="block text-sm font-semibold text-slate-700 mb-1">School Full Address <span class="text-red-500">*</span></label>
+                            <input type="text" class="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-teal/20 focus:border-teal outline-none transition-all" placeholder="Complete address of the school" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-1">State <span class="text-red-500">*</span></label>
+                            <input type="text" class="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-teal/20 focus:border-teal outline-none transition-all" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-1">District <span class="text-red-500">*</span></label>
+                            <input type="text" class="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-teal/20 focus:border-teal outline-none transition-all" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-1">Block <span class="text-red-500">*</span></label>
+                            <input type="text" class="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-teal/20 focus:border-teal outline-none transition-all" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-1">Pincode <span class="text-red-500">*</span></label>
+                            <input type="text" class="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-teal/20 focus:border-teal outline-none transition-all" maxlength="6" required>
+                        </div>
+                        <div class="lg:col-span-2">
+                            <label class="block text-sm font-semibold text-slate-700 mb-1">Landmark</label>
+                            <input type="text" class="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-teal/20 focus:border-teal outline-none transition-all" placeholder="Near by famous place">
+                        </div>
+                    </div>
+
+                    <h3 class="text-sm font-bold text-teal mb-4 uppercase tracking-wider border-b pb-2">SPOC (Point of Contact)</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-1">SPOC Name <span class="text-red-500">*</span></label>
+                            <input type="text" class="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-teal/20 focus:border-teal outline-none transition-all" placeholder="Full Name" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-1">SPOC Mobile Number <span class="text-red-500">*</span></label>
+                            <input type="tel" class="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-teal/20 focus:border-teal outline-none transition-all" placeholder="10-digit number" maxlength="10" required>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden" id="section2">
+                <div class="bg-gradient-to-r from-navy to-slate-800 px-6 py-4 flex items-center justify-between cursor-pointer select-none" onclick="toggleSection(this)">
+                    <div class="flex items-center gap-4">
+                        <div class="w-8 h-8 rounded-full bg-white/10 border border-white/20 flex items-center justify-center font-serif font-bold text-gold">3</div>
+                        <h2 class="font-serif text-lg font-semibold text-white tracking-wide">Bank Account Details</h2>
+                    </div>
+                    <i class="fas fa-chevron-down text-white/60 transition-transform duration-300"></i>
+                </div>
+                
+                <div class="p-6">
+                    <div class="bg-blue-50 text-blue-800 text-sm p-3 rounded-lg flex items-center gap-2 border border-blue-100 mb-6">
+                        <i class="fas fa-info-circle"></i> Ensure details match exactly with your Bank Passbook/Cheque.
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                        <div class="lg:col-span-2">
+                            <label class="block text-sm font-semibold text-slate-700 mb-1">Account Holder Name <span class="text-red-500">*</span></label>
+                            <input type="text" class="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-teal/20 focus:border-teal outline-none transition-all" placeholder="As per bank records" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-1">Bank Name <span class="text-red-500">*</span></label>
+                            <input type="text" class="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-teal/20 focus:border-teal outline-none transition-all" placeholder="e.g. State Bank of India" required>
+                        </div>
+                        <div class="lg:col-span-2">
+                            <label class="block text-sm font-semibold text-slate-700 mb-1">Account Number <span class="text-red-500">*</span></label>
+                            <input type="password" id="accNumber" class="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-teal/20 focus:border-teal outline-none transition-all" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-1">Re-enter Account Number <span class="text-red-500">*</span></label>
+                            <input type="text" class="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-teal/20 focus:border-teal outline-none transition-all" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-1">IFSC Code <span class="text-red-500">*</span></label>
+                            <input type="text" class="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-teal/20 focus:border-teal outline-none transition-all uppercase" placeholder="e.g. SBIN0001234" required>
+                        </div>
+                        <div class="lg:col-span-2">
+                            <label class="block text-sm font-semibold text-slate-700 mb-1">Branch Name <span class="text-red-500">*</span></label>
+                            <input type="text" class="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-teal/20 focus:border-teal outline-none transition-all" required>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden" id="section3">
+                <div class="bg-gradient-to-r from-navy to-slate-800 px-6 py-4 flex items-center justify-between cursor-pointer select-none" onclick="toggleSection(this)">
+                    <div class="flex items-center gap-4">
+                        <div class="w-8 h-8 rounded-full bg-white/10 border border-white/20 flex items-center justify-center font-serif font-bold text-gold">4</div>
+                        <h2 class="font-serif text-lg font-semibold text-white tracking-wide">Document Uploads</h2>
+                    </div>
+                    <i class="fas fa-chevron-down text-white/60 transition-transform duration-300"></i>
+                </div>
+                
+                <div class="p-6 bg-slate-50/50">
+                    <div class="bg-amber-50 text-amber-800 text-sm p-3 rounded-lg flex items-center gap-2 border border-amber-200/50 mb-6 font-medium">
+                        <i class="fas fa-file-pdf"></i> Accepted formats: PDF, JPG, PNG (Max 5MB per file).
+                    </div>
+
+                    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                        <div class="relative border-2 border-dashed border-slate-300 bg-white rounded-xl p-4 text-center hover:border-teal hover:bg-teal/5 transition-all group" id="uc-aadhar-front">
+                            <div class="w-10 h-10 rounded-lg bg-teal/10 text-teal flex items-center justify-center mx-auto mb-2 text-lg group-hover:scale-110 transition-transform upload-icon"><i class="fas fa-id-card"></i></div>
+                            <h4 class="text-xs font-bold text-slate-700 mb-1">Aadhar Front <span class="text-red-500">*</span></h4>
+                            <p class="text-[10px] text-slate-400">Click to upload</p>
+                            <p class="text-[10px] text-teal font-semibold mt-1 truncate px-2" id="fn-aadhar-front"></p>
+                            <input type="file" class="upload-input-hidden" required onchange="handleFile(this,'uc-aadhar-front','fn-aadhar-front')">
+                        </div>
+                        
+                        <div class="relative border-2 border-dashed border-slate-300 bg-white rounded-xl p-4 text-center hover:border-teal hover:bg-teal/5 transition-all group" id="uc-aadhar-back">
+                            <div class="w-10 h-10 rounded-lg bg-teal/10 text-teal flex items-center justify-center mx-auto mb-2 text-lg group-hover:scale-110 transition-transform upload-icon"><i class="fas fa-id-card"></i></div>
+                            <h4 class="text-xs font-bold text-slate-700 mb-1">Aadhar Back <span class="text-red-500">*</span></h4>
+                            <p class="text-[10px] text-slate-400">Click to upload</p>
+                            <p class="text-[10px] text-teal font-semibold mt-1 truncate px-2" id="fn-aadhar-back"></p>
+                            <input type="file" class="upload-input-hidden" required onchange="handleFile(this,'uc-aadhar-back','fn-aadhar-back')">
+                        </div>
+
+                        <div class="relative border-2 border-dashed border-slate-300 bg-white rounded-xl p-4 text-center hover:border-teal hover:bg-teal/5 transition-all group" id="uc-10th">
+                            <div class="w-10 h-10 rounded-lg bg-teal/10 text-teal flex items-center justify-center mx-auto mb-2 text-lg group-hover:scale-110 transition-transform upload-icon"><i class="fas fa-file-alt"></i></div>
+                            <h4 class="text-xs font-bold text-slate-700 mb-1">10th Marksheet <span class="text-red-500">*</span></h4>
+                            <p class="text-[10px] text-slate-400">Click to upload</p>
+                            <p class="text-[10px] text-teal font-semibold mt-1 truncate px-2" id="fn-10th"></p>
+                            <input type="file" class="upload-input-hidden" required onchange="handleFile(this,'uc-10th','fn-10th')">
+                        </div>
+
+                        <div class="relative border-2 border-dashed border-slate-300 bg-white rounded-xl p-4 text-center hover:border-teal hover:bg-teal/5 transition-all group" id="uc-12th">
+                            <div class="w-10 h-10 rounded-lg bg-teal/10 text-teal flex items-center justify-center mx-auto mb-2 text-lg group-hover:scale-110 transition-transform upload-icon"><i class="fas fa-file-alt"></i></div>
+                            <h4 class="text-xs font-bold text-slate-700 mb-1">12th Marksheet <span class="text-red-500">*</span></h4>
+                            <p class="text-[10px] text-slate-400">Click to upload</p>
+                            <p class="text-[10px] text-teal font-semibold mt-1 truncate px-2" id="fn-12th"></p>
+                            <input type="file" class="upload-input-hidden" required onchange="handleFile(this,'uc-12th','fn-12th')">
+                        </div>
+
+                        <div class="relative border-2 border-dashed border-slate-300 bg-white rounded-xl p-4 text-center hover:border-teal hover:bg-teal/5 transition-all group" id="uc-grad">
+                            <div class="w-10 h-10 rounded-lg bg-teal/10 text-teal flex items-center justify-center mx-auto mb-2 text-lg group-hover:scale-110 transition-transform upload-icon"><i class="fas fa-graduation-cap"></i></div>
+                            <h4 class="text-xs font-bold text-slate-700 mb-1">Graduation <span class="text-red-500">*</span></h4>
+                            <p class="text-[10px] text-slate-400">Click to upload</p>
+                            <p class="text-[10px] text-teal font-semibold mt-1 truncate px-2" id="fn-grad"></p>
+                            <input type="file" class="upload-input-hidden" required onchange="handleFile(this,'uc-grad','fn-grad')">
+                        </div>
+
+                        <div class="relative border-2 border-dashed border-slate-300 bg-white rounded-xl p-4 text-center hover:border-teal hover:bg-teal/5 transition-all group" id="uc-pan">
+                            <div class="w-10 h-10 rounded-lg bg-teal/10 text-teal flex items-center justify-center mx-auto mb-2 text-lg group-hover:scale-110 transition-transform upload-icon"><i class="fas fa-credit-card"></i></div>
+                            <h4 class="text-xs font-bold text-slate-700 mb-1">PAN Card <span class="text-red-500">*</span></h4>
+                            <p class="text-[10px] text-slate-400">Click to upload</p>
+                            <p class="text-[10px] text-teal font-semibold mt-1 truncate px-2" id="fn-pan"></p>
+                            <input type="file" class="upload-input-hidden" required onchange="handleFile(this,'uc-pan','fn-pan')">
+                        </div>
+
+                        <div class="relative border-2 border-dashed border-slate-300 bg-white rounded-xl p-4 text-center hover:border-teal hover:bg-teal/5 transition-all group" id="uc-pass">
+                            <div class="w-10 h-10 rounded-lg bg-teal/10 text-teal flex items-center justify-center mx-auto mb-2 text-lg group-hover:scale-110 transition-transform upload-icon"><i class="fas fa-landmark"></i></div>
+                            <h4 class="text-xs font-bold text-slate-700 mb-1">Bank Passbook <span class="text-red-500">*</span></h4>
+                            <p class="text-[10px] text-slate-400">Front page view</p>
+                            <p class="text-[10px] text-teal font-semibold mt-1 truncate px-2" id="fn-pass"></p>
+                            <input type="file" class="upload-input-hidden" required onchange="handleFile(this,'uc-pass','fn-pass')">
+                        </div>
+
+                        <div class="relative border-2 border-dashed border-slate-300 bg-white rounded-xl p-4 text-center hover:border-teal hover:bg-teal/5 transition-all group" id="uc-appt">
+                            <div class="w-10 h-10 rounded-lg bg-teal/10 text-teal flex items-center justify-center mx-auto mb-2 text-lg group-hover:scale-110 transition-transform upload-icon"><i class="fas fa-file-signature"></i></div>
+                            <h4 class="text-xs font-bold text-slate-700 mb-1">Appt. Letter <span class="text-red-500">*</span></h4>
+                            <p class="text-[10px] text-slate-400">Signed copy</p>
+                            <p class="text-[10px] text-teal font-semibold mt-1 truncate px-2" id="fn-appt"></p>
+                            <input type="file" class="upload-input-hidden" required onchange="handleFile(this,'uc-appt','fn-appt')">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden" id="section4">
+                <div class="bg-gradient-to-r from-navy to-slate-800 px-6 py-4 flex items-center justify-between cursor-pointer select-none" onclick="toggleSection(this)">
+                    <div class="flex items-center gap-4">
+                        <div class="w-8 h-8 rounded-full bg-white/10 border border-white/20 flex items-center justify-center font-serif font-bold text-gold">5</div>
+                        <h2 class="font-serif text-lg font-semibold text-white tracking-wide">Photographs</h2>
+                    </div>
+                    <i class="fas fa-chevron-down text-white/60 transition-transform duration-300"></i>
+                </div>
+                
+                <div class="p-6">
+                    <div class="bg-slate-50 border border-slate-200 text-slate-600 text-sm p-3 rounded-lg flex items-center gap-2 mb-6">
+                        <i class="fas fa-camera text-slate-400"></i> JPEG/PNG only. Please upload clear, bright, and recent photos.
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <div class="relative border-2 border-dashed border-slate-300 bg-white rounded-xl p-5 text-center hover:border-gold hover:bg-gold/5 transition-all group cursor-pointer" id="pc-trainer">
+                            <div class="w-20 h-20 rounded-full mx-auto mb-3 bg-gradient-to-br from-teal/10 to-gold/10 border-2 border-slate-200 flex items-center justify-center overflow-hidden transition-all group-hover:border-gold" id="pp-trainer">
+                                <i class="fas fa-user text-3xl text-slate-300"></i>
+                            </div>
+                            <h4 class="text-sm font-bold text-slate-800">Trainer Photo <span class="text-red-500">*</span></h4>
+                            <p class="text-[11px] text-slate-500 mt-1">Passport size</p>
+                            <p class="text-xs text-gold font-semibold mt-2 truncate" id="pn-trainer"></p>
+                            <input type="file" accept="image/*" class="upload-input-hidden" required onchange="handlePhoto(this,'pc-trainer','pn-trainer','pp-trainer')">
+                        </div>
+
+                        <div class="relative border-2 border-dashed border-slate-300 bg-white rounded-xl p-5 text-center hover:border-gold hover:bg-gold/5 transition-all group cursor-pointer" id="pc-school">
+                            <div class="w-20 h-20 rounded-full mx-auto mb-3 bg-gradient-to-br from-teal/10 to-gold/10 border-2 border-slate-200 flex items-center justify-center overflow-hidden transition-all group-hover:border-gold" id="pp-school">
+                                <i class="fas fa-school text-3xl text-slate-300"></i>
+                            </div>
+                            <h4 class="text-sm font-bold text-slate-800">School Front <span class="text-red-500">*</span></h4>
+                            <p class="text-[11px] text-slate-500 mt-1">Building view</p>
+                            <p class="text-xs text-gold font-semibold mt-2 truncate" id="pn-school"></p>
+                            <input type="file" accept="image/*" class="upload-input-hidden" required onchange="handlePhoto(this,'pc-school','pn-school','pp-school')">
+                        </div>
+
+                        <div class="relative border-2 border-dashed border-slate-300 bg-white rounded-xl p-5 text-center hover:border-gold hover:bg-gold/5 transition-all group cursor-pointer" id="pc-campus">
+                            <div class="w-20 h-20 rounded-full mx-auto mb-3 bg-gradient-to-br from-teal/10 to-gold/10 border-2 border-slate-200 flex items-center justify-center overflow-hidden transition-all group-hover:border-gold" id="pp-campus">
+                                <i class="fas fa-city text-3xl text-slate-300"></i>
+                            </div>
+                            <h4 class="text-sm font-bold text-slate-800">Complete Campus <span class="text-red-500">*</span></h4>
+                            <p class="text-[11px] text-slate-500 mt-1">Full premises photo</p>
+                            <p class="text-xs text-gold font-semibold mt-2 truncate" id="pn-campus"></p>
+                            <input type="file" accept="image/*" class="upload-input-hidden" required onchange="handlePhoto(this,'pc-campus','pn-campus','pp-campus')">
+                        </div>
+
+                        <div class="relative border-2 border-dashed border-slate-300 bg-white rounded-xl p-5 text-center hover:border-gold hover:bg-gold/5 transition-all group cursor-pointer" id="pc-class">
+                            <div class="w-20 h-20 rounded-full mx-auto mb-3 bg-gradient-to-br from-teal/10 to-gold/10 border-2 border-slate-200 flex items-center justify-center overflow-hidden transition-all group-hover:border-gold" id="pp-class">
+                                <i class="fas fa-chalkboard-teacher text-3xl text-slate-300"></i>
+                            </div>
+                            <h4 class="text-sm font-bold text-slate-800">Classroom <span class="text-red-500">*</span></h4>
+                            <p class="text-[11px] text-slate-500 mt-1">Show seating</p>
+                            <p class="text-xs text-gold font-semibold mt-2 truncate" id="pn-class"></p>
+                            <input type="file" accept="image/*" class="upload-input-hidden" required onchange="handlePhoto(this,'pc-class','pn-class','pp-class')">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="text-center mt-10 mb-8">
+                <button type="submit" class="inline-flex items-center gap-3 bg-gradient-to-r from-teal to-[#0a6650] text-white px-10 py-4 rounded-full font-bold text-lg shadow-[0_8px_20px_rgba(13,122,95,0.3)] hover:shadow-[0_12px_25px_rgba(13,122,95,0.4)] hover:-translate-y-1 transition-all duration-300">
+                    <i class="fas fa-paper-plane"></i>
+                    Submit Registration
+                </button>
+                <p class="text-xs text-slate-400 mt-4 font-medium"><i class="fas fa-lock mr-1"></i> 256-bit Secure Encryption | UPBOCW Portal</p>
+            </div>
+        </form>
+    </div>
+
+<script>
+    // Document File Handler
+    function handleFile(input, cardId, nameId) {
+        const card = document.getElementById(cardId);
+        const nameEl = document.getElementById(nameId);
+        if (input.files && input.files[0]) {
+            card.classList.add('border-teal', 'bg-teal/5');
+            card.classList.remove('border-slate-300');
+            nameEl.textContent = input.files[0].name;
+            card.querySelector('.upload-icon').innerHTML = '<i class="fas fa-check-circle"></i>';
+        }
+    }
+
+    // Photo File Handler (with preview)
+    function handlePhoto(input, cardId, nameId, previewId) {
+        const card = document.getElementById(cardId);
+        const nameEl = document.getElementById(nameId);
+        const preview = document.getElementById(previewId);
+        if (input.files && input.files[0]) {
+            card.classList.add('border-gold', 'bg-gold/5');
+            card.classList.remove('border-slate-300');
+            nameEl.textContent = input.files[0].name;
+            const reader = new FileReader();
+            reader.onload = e => {
+                preview.innerHTML = `<img src="${e.target.result}" alt="preview" class="w-full h-full object-cover">`;
+            };
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
+    // Accordion Toggle
+    function toggleSection(head) {
+        const body = head.nextElementSibling;
+        const icon = head.querySelector('i');
+        if (body.style.display === 'none') {
+            body.style.display = 'block';
+            icon.style.transform = 'rotate(0deg)';
+        } else {
+            body.style.display = 'none';
+            icon.style.transform = 'rotate(-90deg)';
+        }
+    }
+
+    // Scroll to section and update progress UI
+    function scrollToSection(idx) {
+        const el = document.getElementById('section' + idx);
+        if (el) {
+            const yOffset = -80; // offset for sticky header
+            const y = el.getBoundingClientRect().top + window.pageYOffset + yOffset;
+            window.scrollTo({top: y, behavior: 'smooth'});
+        }
+        updateProgress(idx);
+    }
+
+    // Update Progress Bar visuals
+    function updateProgress(activeIdx) {
+        for (let i = 1; i <= 5; i++) {
+            const step = document.getElementById('step' + i);
+            const label = document.getElementById('label' + i);
+            const conn = document.getElementById('conn' + i);
+            
+            // Reset styles
+            step.className = "w-10 h-10 rounded-full flex items-center justify-center font-bold border-2 transition-all duration-300 border-slate-300 text-slate-400 bg-white group-hover:border-teal group-hover:text-teal";
+            if(label) label.className = "ml-3 text-sm font-medium text-slate-500 hidden sm:block";
+            if(conn) conn.className = "flex-1 h-[2px] mx-4 transition-colors duration-300 bg-slate-200";
+
+            if (i === activeIdx + 1) {
+                // Current Active Step
+                step.className = "w-10 h-10 rounded-full flex items-center justify-center font-bold border-2 transition-all duration-300 border-teal text-white bg-teal shadow-[0_0_0_4px_rgba(13,122,95,0.15)]";
+                if(label) label.className = "ml-3 text-sm font-bold text-teal hidden sm:block";
+            } else if (i < activeIdx + 1) {
+                // Completed Step
+                step.className = "w-10 h-10 rounded-full flex items-center justify-center font-bold border-2 transition-all duration-300 border-navy text-white bg-navy";
+                if(label) label.className = "ml-3 text-sm font-semibold text-navy hidden sm:block";
+                if(conn) conn.className = "flex-1 h-[2px] mx-4 transition-colors duration-300 bg-navy";
+                step.innerHTML = '<i class="fas fa-check"></i>';
+            } else {
+                step.innerHTML = i;
+            }
+        }
+    }
+
+    // Auto-update progress bar on scroll
+    const sections = [0,1,2,3,4].map(i => document.getElementById('section'+i));
+    const observer = new IntersectionObserver(entries => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const idx = sections.indexOf(entry.target);
+                updateProgress(idx);
+            }
+        });
+    }, { rootMargin: '-20% 0px -60% 0px' });
+    sections.forEach(s => { if(s) observer.observe(s); });
+
+    // Submit Action
+    document.getElementById('trainerForm').onsubmit = function(e) {
+        e.preventDefault();
+        Swal.fire({
+            title: '<span class="font-serif text-navy">Registration Submitted!</span>',
+            html: '<p class="font-sans text-slate-500">Aapka trainer registration successfully receive ho gaya hai.</p>',
+            icon: 'success',
+            confirmButtonColor: '#0d7a5f',
+            confirmButtonText: 'Done',
+            customClass: {
+                popup: 'rounded-2xl',
+                confirmButton: 'rounded-full px-8 py-2.5 font-bold'
+            }
+        });
+    };
+</script>
+</body>
+</html>

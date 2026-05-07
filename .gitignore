@@ -2,3 +2,5 @@ html
 html_backup
 database
 db
+node_modules
+local.json

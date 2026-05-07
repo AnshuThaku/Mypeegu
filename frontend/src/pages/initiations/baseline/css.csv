@@ -1,0 +1,31 @@
+Grade_Band,Domain,Question_Number,Question_Text,Question_Type,Multiplier_Weight,Options_Scale,Include_In_Baseline_3
+G6-8,Emotional,1,When I feel worried or stressed I don't always know why,Risk,1.5,4-Point,Yes
+G6-8,Emotional,2,When I feel upset or angry it takes me time to calm down,Risk,1.5,4-Point,Yes
+G6-8,Emotional,3,I feel good about myself and what I can do,Protective,1.0,4-Point,No
+G6-8,Cognitive,4,When I am studying or doing homework I get distracted easily,Risk,1.5,4-Point,Yes
+G6-8,Cognitive,5,I forget instructions or what I was supposed to do,Risk,1.5,4-Point,Yes
+G6-8,Cognitive,6,I can stay focused on a task until I finish it,Protective,1.5,4-Point,No
+G6-8,Social,7,I feel left out or not included sometimes,Risk,1.5,4-Point,Yes
+G6-8,Social,8,I find it easy to make and keep friends,Protective,1.0,4-Point,No
+G6-8,Social,9,I feel shy or nervous when talking to classmates,Risk,1.2,4-Point,No
+G6-8,Help-Seeking,10,When I don't understand something I ask for help,Protective,1.5,4-Point,Yes
+G6-8,Help-Seeking,11,I keep my problems to myself even when I need help,Risk,1.5,4-Point,Yes
+G6-8,Help-Seeking,12,I know who I can go to when I need help,Protective,1.5,4-Point,Yes
+G8-9,Organisation & Execution,1,I am able to plan and manage my schoolwork across subjects,Protective,1.2,5-Point,Yes
+G8-9,Organisation & Execution,2,I sometimes leave important work until the last minute,Risk,1.2,5-Point,Yes
+G8-9,Attention & Persistence,3,When work becomes long or difficult my attention shifts to other things,Risk,1.5,5-Point,Yes
+G8-9,Attention & Persistence,4,I can stay focused even when work is challenging,Protective,1.5,5-Point,No
+G8-9,Working Memory,5,When tasks have many steps I sometimes forget what I need to do,Risk,1.5,5-Point,Yes
+G8-9,Emotional Regulation,6,There are times when my emotions feel difficult to manage,Risk,1.5,5-Point,Yes
+G8-9,Emotional Regulation,7,When I feel upset I sometimes react quickly or strongly,Risk,1.5,5-Point,No
+G8-9,Internal Distress,8,I feel stressed about schoolwork or expectations,Risk,1.5,5-Point,Yes
+G8-9,Internal Distress,9,There are times when I feel low or less motivated,Risk,1.5,5-Point,Yes
+G8-9,Social & Peer Interaction,10,I feel like I belong in my friend group,Protective,1.5,5-Point,Yes
+G8-9,Social & Peer Interaction,11,I sometimes feel left out or not included,Risk,1.5,5-Point,No
+G8-9,Social Confidence,12,I feel comfortable sharing my thoughts in class or with others,Protective,1.2,5-Point,No
+G8-9,Social Confidence,13,I feel judged or unsure when speaking in class,Risk,1.2,5-Point,No
+G8-9,Behavioural Regulation,14,I sometimes act quickly without thinking,Risk,1.5,5-Point,Yes
+G8-9,Help-Seeking,15,When I need help I reach out to someone,Protective,1.5,5-Point,Yes
+G8-9,Help-Seeking,16,I try to handle problems on my own even when it is difficult,Risk,1.5,5-Point,Yes
+G10-12,Organisation & Execution,1,I am able to plan my study time when I have multiple subjects or deadlines,Protective,1.2,5-Point,Yes
+G10-12,Organisation & Execution,2,I sometimes delay starting important tasks even when I know they matter,Risk,1.2,5-Point,Yes

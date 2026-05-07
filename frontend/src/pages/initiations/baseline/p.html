@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI GURUKL - Pitch Presentation</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        navy: '#052d4e',
+                        navyLight: '#0a4270',
+                        gold: '#f2a632',
+                        goldLight: '#fcd385',
+                    },
+                    fontFamily: {
+                        sans: ['Poppins', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #f8fafc; }
+        
+        /* Fixed Slide Transition Animations */
+        .slide {
+            position: absolute;
+            top: 0; left: 0; 
+            width: 100%; height: 100%;
+            opacity: 0;
+            visibility: hidden;
+            transform: scale(0.98) translateY(10px);
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            /* New Flex properties to guarantee centering on every slide */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+        
+        .slide.active {
+            opacity: 1;
+            visibility: visible;
+            transform: scale(1) translateY(0);
+            z-index: 10;
+        }
+
+        .notes-panel::-webkit-scrollbar { width: 6px; }
+        .notes-panel::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 10px; }
+
+        .check-list li { position: relative; padding-left: 2rem; margin-bottom: 0.75rem; }
+        .check-list li::before {
+            content: '\f058';
+            font-family: 'Font Awesome 6 Free';
+            font-weight: 900;
+            color: #f2a632;
+            position: absolute; left: 0; top: 2px;
+        }
+
+        .bg-pattern {
+            background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+            background-size: 24px 24px;
+        }
+    </style>
+</head>
+<body class="flex flex-col h-screen text-slate-800">
+
+    <div id="presentation-area" class="relative flex-1 overflow-hidden bg-slate-50 bg-pattern">
+        
+        <div class="slide active" id="slide-1">
+            <div class="w-full max-w-5xl text-center flex flex-col items-center">
+                <img src="https://aigurukl.com/logo.png" alt="AI GURUKL Logo" class="h-32 md:h-48 mb-8 drop-shadow-xl hover:scale-105 transition-transform duration-500">
+                <h1 class="text-4xl md:text-6xl font-extrabold text-navy mb-4 tracking-tight">Redefining AI Education for Schools</h1>
+                <p class="text-xl md:text-2xl font-medium text-slate-500 mb-8 max-w-3xl">NEP-2020 Aligned | Readiness-Based Learning</p>
+                <div class="w-24 h-2 bg-gold rounded-full"></div>
+            </div>
+            <div class="hidden notes">Good morning everyone! Thank you for having us today. Aaj hum ek bohot hi critical topic par baat karne aaye hain—hamare bachhon ka future. Hum sab jante hain AI duniya badal raha hai, par kya hamare schools us speed se badal rahe hain? Aaj hum AI GURUKL introduce kar rahe hain, jo AI education ko completely redefine karta hai.</div>
+        </div>
+
+        <div class="slide" id="slide-2">
+            <div class="w-full max-w-6xl mx-auto">
+                <div class="text-center mb-10">
+                    <h2 class="text-3xl md:text-5xl font-bold text-navy mb-2">The Core Challenge</h2>
+                    <div class="w-16 h-1.5 bg-gold mx-auto rounded-full"></div>
+                </div>
+                
+                <div class="grid md:grid-cols-2 gap-8 items-stretch">
+                    <div class="bg-white p-8 rounded-2xl shadow-lg border-t-4 border-red-500">
+                        <div class="w-14 h-14 bg-red-100 text-red-500 rounded-full flex items-center justify-center text-2xl mb-6"><i class="fas fa-exclamation-triangle"></i></div>
+                        <h3 class="text-2xl font-bold text-navy mb-4">The Problem</h3>
+                        <p class="text-lg text-slate-600 leading-relaxed mb-4">Students are using AI (like ChatGPT) as a shortcut to copy-paste homework, completely bypassing the learning process.</p>
+                        <p class="font-semibold text-red-500">Result: Passive Consumers.</p>
+                    </div>
+                    
+                    <div class="bg-white p-8 rounded-2xl shadow-lg border-t-4 border-navy">
+                        <div class="w-14 h-14 bg-navyLight text-white rounded-full flex items-center justify-center text-2xl mb-6"><i class="fas fa-lightbulb"></i></div>
+                        <h3 class="text-2xl font-bold text-navy mb-4">Our Vision (NEP 2020)</h3>
+                        <p class="text-lg text-slate-600 leading-relaxed mb-4">Integrate 21st-century digital fluency early on. Teach them how to orchestrate AI tools ethically and creatively.</p>
+                        <p class="font-semibold text-navy">Result: Responsible Creators.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="hidden notes">Problem ye nahi hai ki bachhe AI use nahi kar rahe. Problem ye hai ki wo ise homework copy karne ke liye use kar rahe hain. NEP-2020 kahta hai ki digital fluency zaroori hai. Hamara vision hai bachhon ko tools ka gulam banane ke bajaye, unhe responsible creators banana. Aur ye hum kaise karenge? Apne 5-Level Framework se.</div>
+        </div>
+
+        <div class="slide" id="slide-3">
+            <div class="w-full max-w-6xl mx-auto">
+                <h2 class="text-3xl md:text-5xl font-bold text-navy mb-4 text-center">Readiness over Age</h2>
+                <p class="text-xl text-center text-slate-500 mb-12">A 14-year-old beginner needs a different starting point than a 10-year-old coder.</p>
+                
+                <div class="flex flex-col md:flex-row items-center gap-8 bg-white p-8 rounded-3xl shadow-xl">
+                    <div class="w-full md:w-1/2">
+                        <img src="https://img.freepik.com/free-vector/ai-technology-brain-background-vector-digital-transformation-concept_53876-112222.jpg?w=740" class="rounded-2xl shadow-md w-full object-cover h-64" alt="AI Brain">
+                    </div>
+                    <div class="w-full md:w-1/2 space-y-6">
+                        <div class="flex items-start gap-4">
+                            <div class="w-12 h-12 bg-navy text-white rounded-xl flex items-center justify-center text-xl font-bold shrink-0">1</div>
+                            <div>
+                                <h4 class="text-xl font-bold text-navy">AI Readiness Assessment</h4>
+                                <p class="text-slate-600">Students take a dynamic 10-question logic and exposure quiz.</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-4">
+                            <div class="w-12 h-12 bg-gold text-navy rounded-xl flex items-center justify-center text-xl font-bold shrink-0">2</div>
+                            <div>
+                                <h4 class="text-xl font-bold text-navy">Personalized Placement</h4>
+                                <p class="text-slate-600">The system automatically recommends their exact starting level out of 5.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="hidden notes">Hamari approach thodi alag hai. Ek 14 saal ka bacha jise AI ka zero knowledge hai, wo sidhe advance coding nahi seekh sakta. Isiliye hum age par nahi, 'Readiness' par focus karte hain. Humara system pehle ek 10-question ka smart assessment leta hai, aur bachhe ko uske knowledge ke hisaab se sahi level par place karta hai.</div>
+        </div>
+
+        <div class="slide" id="slide-4">
+            <div class="w-full max-w-5xl bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row h-[500px]">
+                <div class="md:w-1/3 bg-navy p-8 text-white flex flex-col justify-center">
+                    <i class="fas fa-seedling text-6xl text-gold mb-6"></i>
+                    <h2 class="text-xl font-bold text-goldLight tracking-wider uppercase mb-2">Level 1</h2>
+                    <h3 class="text-4xl font-extrabold mb-4">AI Explorer</h3>
+                    <p class="text-lg opacity-90 mb-6">AI Foundations</p>
+                    <div class="mt-auto">
+                        <p class="text-sm uppercase font-bold text-slate-400">Target Segment</p>
+                        <p class="text-xl font-semibold">Grades 1-3 <span class="text-sm font-normal opacity-75">(6-9 yrs)</span></p>
+                    </div>
+                </div>
+                <div class="md:w-2/3 p-8 md:p-12 overflow-y-auto">
+                    <h4 class="text-2xl font-bold text-navy mb-2">Focus: Curiosity & Digital Safety</h4>
+                    <p class="text-slate-500 mb-6 italic">"No tools dependency. Focus is purely conceptual."</p>
+                    
+                    <ul class="check-list text-lg text-slate-700 space-y-3">
+                        <li>What is AI? (Removing the hype & fear)</li>
+                        <li>Everyday AI around us (Smart TVs, YouTube recommendations)</li>
+                        <li>How human thinking differs from machine assistance</li>
+                        <li>Digital safety basics: privacy & personal information</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="hidden notes">Shuruwaat hoti hai Level 1: Explorer se. Ye chote bachhon ke liye hai. Yaha hum unhe kisi software par nahi bithate. Hum unhe samjhate hain ki AI koi jaadu nahi hai. Jaise YouTube unki pasand ka video dikhata hai, wo AI hai. Yaha sabse bada focus Digital Safety aur privacy par hota hai.</div>
+        </div>
+
+        <div class="slide" id="slide-5">
+            <div class="w-full max-w-5xl bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row h-[500px]">
+                <div class="md:w-1/3 bg-navy p-8 text-white flex flex-col justify-center">
+                    <i class="fas fa-search text-6xl text-gold mb-6"></i>
+                    <h2 class="text-xl font-bold text-goldLight tracking-wider uppercase mb-2">Level 2</h2>
+                    <h3 class="text-4xl font-extrabold mb-4">AI Thinker</h3>
+                    <p class="text-lg opacity-90 mb-6">AI Literacy & Fluency</p>
+                    <div class="mt-auto">
+                        <p class="text-sm uppercase font-bold text-slate-400">Target Segment</p>
+                        <p class="text-xl font-semibold">Grades 4-5 <span class="text-sm font-normal opacity-75">(9-11 yrs)</span></p>
+                    </div>
+                </div>
+                <div class="md:w-2/3 p-8 md:p-12 overflow-y-auto">
+                    <h4 class="text-2xl font-bold text-navy mb-2">Focus: Logic, Bias & Verification</h4>
+                    <p class="text-slate-500 mb-6 italic">"Teaching them to question the machine."</p>
+                    
+                    <ul class="check-list text-lg text-slate-700 space-y-3">
+                        <li>How AI "learns" from Data (Patterns)</li>
+                        <li>The "Garbage In, Garbage Out" rule</li>
+                        <li>Understanding AI Bias and Hallucinations (making things up)</li>
+                        <li>Fact-checking and responsible academic use</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="hidden notes">Level 2 me bachhe sochna shuru karte hain. Unhe pata chalta hai ki AI mistakes bhi kar sakta hai. Yaha hum unhe 'Bias' aur 'Fact-checking' sikhate hain. Unhe ye samajh aata hai ki AI ki har baat sach nahi hoti, aur data ki quality kitni zaroori hai. We teach them to question the machine.</div>
+        </div>
+
+        <div class="slide" id="slide-6">
+            <div class="w-full max-w-5xl bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row h-[500px]">
+                <div class="md:w-1/3 bg-navy p-8 text-white flex flex-col justify-center">
+                    <i class="fas fa-magic text-6xl text-gold mb-6"></i>
+                    <h2 class="text-xl font-bold text-goldLight tracking-wider uppercase mb-2">Level 3</h2>
+                    <h3 class="text-4xl font-extrabold mb-4">AI Creator</h3>
+                    <p class="text-lg opacity-90 mb-6">Applied Creativity</p>
+                    <div class="mt-auto">
+                        <p class="text-sm uppercase font-bold text-slate-400">Target Segment</p>
+                        <p class="text-xl font-semibold">Grades 6-8 <span class="text-sm font-normal opacity-75">(11-14 yrs)</span></p>
+                    </div>
+                </div>
+                <div class="md:w-2/3 p-8 md:p-12 overflow-y-auto">
+                    <h4 class="text-2xl font-bold text-navy mb-2">Focus: Prompting & Workflows</h4>
+                    <p class="text-slate-500 mb-6 italic">"The entry point into real, hands-on AI usage."</p>
+                    
+                    <ul class="check-list text-lg text-slate-700 space-y-3">
+                        <li>Using AI tools for Writing, Images & Presentations</li>
+                        <li>The Art of Prompting (Context, Constraints, Iteration)</li>
+                        <li>Structured Workflows (Research → Outline → Draft → Refine)</li>
+                        <li>Avoiding Plagiarism & understanding Fake Content</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="hidden notes">Ye turning point hai. Level 3 me bachhe actually AI tools use karna seekhte hain. Par randomly nahi! Hum unhe 'Prompt Engineering' sikhate hain—yani AI se sahi sawal kaise puchen. Wo seekhte hain ki ek project ka pehla draft AI se kaise banwayen aur fir apna human touch kaise add karein.</div>
+        </div>
+
+        <div class="slide" id="slide-7">
+            <div class="w-full max-w-5xl bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row h-[500px]">
+                <div class="md:w-1/3 bg-navy p-8 text-white flex flex-col justify-center">
+                    <i class="fas fa-chess-knight text-6xl text-gold mb-6"></i>
+                    <h2 class="text-xl font-bold text-goldLight tracking-wider uppercase mb-2">Level 4</h2>
+                    <h3 class="text-4xl font-extrabold mb-4">AI Problem Solver</h3>
+                    <p class="text-lg opacity-90 mb-6">Career Readiness</p>
+                    <div class="mt-auto">
+                        <p class="text-sm uppercase font-bold text-slate-400">Target Segment</p>
+                        <p class="text-xl font-semibold">Grades 9-10 <span class="text-sm font-normal opacity-75">(14-16 yrs)</span></p>
+                    </div>
+                </div>
+                <div class="md:w-2/3 p-8 md:p-12 overflow-y-auto">
+                    <h4 class="text-2xl font-bold text-navy mb-2">Focus: Strategy & Application</h4>
+                    <p class="text-slate-500 mb-6 italic">"AI becomes their strategic thinking partner."</p>
+                    
+                    <ul class="check-list text-lg text-slate-700 space-y-3">
+                        <li>Breaking complex real-world problems into AI-solvable tasks</li>
+                        <li>Subject-specific AI use (Science, Commerce, Humanities)</li>
+                        <li>Academic Integrity & Transparent AI Usage</li>
+                        <li>No-code automation & productivity systems</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="hidden notes">9th aur 10th class me padhai ka pressure hota hai. Level 4 me hum AI ko unka 'Study Partner' banate hain. Agar unhe History ka project banana hai ya Science ka concept samajhna hai, toh AI ko strategically kaise use karein bina cheat kiye. Ye level unhe future careers ki jhalak deta hai.</div>
+        </div>
+
+        <div class="slide" id="slide-8">
+            <div class="w-full max-w-5xl bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row h-[500px]">
+                <div class="md:w-1/3 bg-navy p-8 text-white flex flex-col justify-center">
+                    <i class="fas fa-rocket text-6xl text-gold mb-6"></i>
+                    <h2 class="text-xl font-bold text-goldLight tracking-wider uppercase mb-2">Level 5</h2>
+                    <h3 class="text-4xl font-extrabold mb-4">AI Innovator</h3>
+                    <p class="text-lg opacity-90 mb-6">Future Skills & Impact</p>
+                    <div class="mt-auto">
+                        <p class="text-sm uppercase font-bold text-slate-400">Target Segment</p>
+                        <p class="text-xl font-semibold">Grades 11-12 <span class="text-sm font-normal opacity-75">(16-18 yrs)</span></p>
+                    </div>
+                </div>
+                <div class="md:w-2/3 p-8 md:p-12 overflow-y-auto">
+                    <h4 class="text-2xl font-bold text-navy mb-2">Focus: Advanced Systems & Leadership</h4>
+                    <p class="text-slate-500 mb-6 italic">"Moving from users to solution designers."</p>
+                    
+                    <ul class="check-list text-lg text-slate-700 space-y-3">
+                        <li>Multi-tool orchestration (Connecting multiple APIs/Tools)</li>
+                        <li>Prototype thinking & Entrepreneurship pitching</li>
+                        <li>Understanding AI Regulations, Ethics & Societal Impact</li>
+                        <li>Capstone Solution Design Project</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="hidden notes">Final stage hai Innovator. Yaha bachhe sirf users nahi, builders bante hain. Wo alag-alag AI tools ko jodkar nayi chizein banate hain. Hum unhe business pitching, global AI laws, aur ethics sikhate hain. Jab ye bachhe school se niklenge, they will be 100% college and industry-ready.</div>
+        </div>
+
+        <div class="slide" id="slide-9">
+            <div class="w-full max-w-6xl mx-auto">
+                <h2 class="text-3xl md:text-5xl font-bold text-navy mb-10 text-center">Why Partner With AI GURUKL?</h2>
+                
+                <div class="grid grid-cols-2 gap-6">
+                    <div class="bg-white p-6 rounded-2xl shadow-md border-l-4 border-gold">
+                        <i class="fas fa-chalkboard-teacher text-3xl text-navy mb-4"></i>
+                        <h3 class="text-xl font-bold text-navy mb-2">Zero Burden on Teachers</h3>
+                        <p class="text-slate-600">Fully managed, self-paced interactive platform. Your existing faculty just supervises.</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl shadow-md border-l-4 border-gold">
+                        <i class="fas fa-check-double text-3xl text-navy mb-4"></i>
+                        <h3 class="text-xl font-bold text-navy mb-2">100% NEP Compliant</h3>
+                        <p class="text-slate-600">Checks all boxes for 21st-century digital integration mandated by the government.</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl shadow-md border-l-4 border-gold">
+                        <i class="fas fa-school text-3xl text-navy mb-4"></i>
+                        <h3 class="text-xl font-bold text-navy mb-2">Premium School Branding</h3>
+                        <p class="text-slate-600">Position your school as an elite "Future-Ready Tech Pioneer" to parents.</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl shadow-md border-l-4 border-gold">
+                        <i class="fas fa-chart-line text-3xl text-navy mb-4"></i>
+                        <h3 class="text-xl font-bold text-navy mb-2">Interactive Dashboard</h3>
+                        <p class="text-slate-600">Track every student's assessment, level placement, and progress in real-time.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="hidden notes">Ab sawal aata hai ki aapki management ko ye kyu apnana chahiye? Pehla, aapke teachers par koi extra burden nahi aayega. Doosra, aapka school NEP-2020 compliant banega. Aur teesra, parents us school ko prefer karte hain jo bacho ko future-ready kare. AI GURUKL aapke school ko us elite category me la khada karega.</div>
+        </div>
+
+        <div class="slide" id="slide-10">
+            <div class="w-full max-w-5xl text-center flex flex-col items-center">
+                <img src="https://aigurukl.com/logo.png" alt="AI GURUKL Logo" class="h-24 mb-8">
+                <h2 class="text-4xl md:text-6xl font-extrabold text-navy mb-6">The Future is AI. The Time is Now.</h2>
+                <p class="text-2xl text-slate-600 mb-10">Let's take the first step together.</p>
+                
+                <div class="bg-white px-10 py-6 rounded-full shadow-lg border border-slate-100 flex items-center gap-4 animate-bounce">
+                    <i class="fas fa-comments text-3xl text-gold"></i>
+                    <span class="text-2xl font-bold text-navy">Open for Q & A</span>
+                </div>
+            </div>
+            <div class="hidden notes">Duniya bohot tezi se aage badh rahi hai, aur humein apne students ko is race me aage rakhna hai. Thank you so much for your time and patience. Mai ab aapke koi bhi sawal ya doubts answer karne ke liye ready hu.</div>
+        </div>
+
+    </div>
+
+    <div id="notes-drawer" class="bg-slate-900 text-white p-6 border-t-4 border-gold hidden shadow-2xl z-50">
+        <div class="flex justify-between items-center mb-2">
+            <h4 class="text-gold font-bold uppercase tracking-wider text-sm"><i class="fas fa-microphone-alt mr-2"></i> Speaker Notes</h4>
+            <button onclick="toggleNotes()" class="text-slate-400 hover:text-white"><i class="fas fa-times"></i></button>
+        </div>
+        <p id="current-note" class="text-lg leading-relaxed text-slate-200 notes-panel max-h-32 overflow-y-auto"></p>
+    </div>
+
+    <div class="bg-white border-t border-slate-200 px-6 py-4 flex justify-between items-center z-40 shadow-lg">
+        <div class="flex items-center gap-4">
+            <img src="https://aigurukl.com/logo.png" alt="Logo" class="h-8">
+            <span class="text-slate-400 font-medium hidden md:inline">| School Presentation Deck</span>
+        </div>
+        
+        <div class="flex items-center gap-4">
+            <button onclick="toggleNotes()" class="w-10 h-10 flex items-center justify-center rounded-full bg-slate-100 text-slate-600 hover:bg-gold hover:text-white transition-colors tooltip" title="Speaker Notes (Press 'N')">
+                <i class="fas fa-comment-dots"></i>
+            </button>
+            
+            <button onclick="toggleFullScreen()" class="w-10 h-10 flex items-center justify-center rounded-full bg-slate-100 text-slate-600 hover:bg-navy hover:text-white transition-colors" title="Fullscreen (Press 'F')">
+                <i class="fas fa-expand"></i>
+            </button>
+
+            <div class="flex items-center bg-slate-100 rounded-full p-1 ml-4 border border-slate-200 shadow-inner">
+                <button onclick="prevSlide()" class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-white hover:shadow text-navy transition-all">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <span class="px-4 font-bold text-slate-600 min-w-[80px] text-center" id="slide-counter">1 / 10</span>
+                <button onclick="nextSlide()" class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-white hover:shadow text-navy transition-all">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentSlide = 1;
+        const totalSlides = 10;
+        let notesVisible = false;
+
+        function updateSlide() {
+            document.querySelectorAll('.slide').forEach(slide => slide.classList.remove('active'));
+            const activeSlide = document.getElementById(`slide-${currentSlide}`);
+            activeSlide.classList.add('active');
+            
+            document.getElementById('slide-counter').innerText = `${currentSlide} / ${totalSlides}`;
+
+            const noteText = activeSlide.querySelector('.notes')?.innerText || "No notes for this slide.";
+            document.getElementById('current-note').innerText = noteText;
+        }
+
+        function nextSlide() {
+            if (currentSlide < totalSlides) {
+                currentSlide++;
+                updateSlide();
+            }
+        }
+
+        function prevSlide() {
+            if (currentSlide > 1) {
+                currentSlide--;
+                updateSlide();
+            }
+        }
+
+        function toggleNotes() {
+            notesVisible = !notesVisible;
+            const drawer = document.getElementById('notes-drawer');
+            if (notesVisible) {
+                drawer.classList.remove('hidden');
+                drawer.classList.add('block');
+            } else {
+                drawer.classList.remove('block');
+                drawer.classList.add('hidden');
+            }
+        }
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === "ArrowRight" || e.key === " ") {
+                nextSlide();
+            } else if (e.key === "ArrowLeft") {
+                prevSlide();
+            } else if (e.key === "n" || e.key === "N") {
+                toggleNotes();
+            } else if (e.key === "f" || e.key === "F") {
+                toggleFullScreen();
+            }
+        });
+
+        function toggleFullScreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.log(`Error attempting to enable fullscreen: ${err.message}`);
+                });
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+            }
+        }
+
+        updateSlide();
+    </script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+{
+	"name": "MYPEEGU-dev",
+	"environment": "development",
+	"superAdminKey": "admin123",
+	"jwtPrivateKey": "mypeegu_secret_2026",
+	"port": "3004",
+	"logLevel": "info",
+	"dbPath": "mongodb+srv://anshthakurcs236_db_user:Wkx6o6JN6iIRKPfG@cluster0.ksxzzbx.mongodb.net/mypeegu?retryWrites=true&w=majority",
+	"myPeeguAccessKeyId": "",
+	"myPeeguSecretAccessKey": ""
+}
