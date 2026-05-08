@@ -766,18 +766,21 @@
 //   )
 // }
 // export default SELPdfViewDialog
-import React, { useCallback, useEffect, useRef, useState, useMemo } from 'react'
 import { Dialog, Typography, Box, Skeleton, MenuItem, Select, CircularProgress } from '@mui/material'
+import React, { useCallback, useEffect, useRef, useState, useMemo } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import PictureAsPdfRoundedIcon from '@mui/icons-material/PictureAsPdfRounded'
 import KeyboardArrowDownRoundedIcon from '@mui/icons-material/KeyboardArrowDownRounded'
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded'
 import { fetchAllSELTrackerModules } from './SELFunctions'
+import { Document, Page, pdfjs } from 'react-pdf'
 import { SELpdfViewTitle, presentationTools } from './SELpdfViewTitle'
 
 // ── API Imports ──
 import myPeeguAxios from '../../../utils/myPeeguAxios'
 import { apiEndPoints, apiMethods } from '../../../utils/apiConstants'
+
+pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`
 
 const MONTHS_LIST = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -786,50 +789,96 @@ const MONTHS_LIST = [
 
 // ── Theme ─────────────────────────────────────────────────────────────────────
 const THEME = {
-  blue: '#1565c0',
-  blueMid: '#1976d2',
-  blueLight: '#e3f0fd',
-  blueBorder: '#bbdefb',
-  blueHover: '#1e88e5',
-  text: '#1a2340',
-  textMuted: '#64748b',
-  bg: '#f4f6fa',
-  white: '#ffffff',
-  border: '#e8edf4',
+  blue: '#1565c0', blueMid: '#1976d2', blueLight: '#e3f0fd', blueBorder: '#bbdefb',
+  text: '#1a2340', textMuted: '#64748b', bg: '#f4f6fa', white: '#ffffff', border: '#e8edf4',
 }
 
 const BADGE_COLORS = ['#1565c0', '#0277bd', '#00838f', '#2e7d32', '#6a1b9a', '#ad1457', '#e65100']
 
+const getDefaultZoom = (orientation) => {
+  if (orientation === 'landscape') return 1.0
+  if (orientation === 'portrait')  return 2.3
+  return 2.0 
+}
+
+// ─── Highlighter Canvas ───────────────────────────────────────────────────────
+const NativeHighlighter = ({ isActive, isEraser, clearTrigger, undoTrigger }) => {
+  const canvasRef = useRef(null)
+  const isDrawing = useRef(false)
+  const historyStack = useRef([])
+  const lastPos = useRef({ x: 0, y: 0 })
+
+  useEffect(() => {
+    const canvas = canvasRef.current; if (!canvas) return
+    const ro = new ResizeObserver(() => {
+      if (canvas.offsetWidth > 0 && canvas.offsetHeight > 0) {
+        canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight
+        const ctx = canvas.getContext('2d')
+        try { historyStack.current = [ctx.getImageData(0, 0, canvas.width, canvas.height)] } catch (e) {}
+      }
+    }); ro.observe(canvas); return () => ro.disconnect()
+  }, [])
+
+  useEffect(() => {
+    if (clearTrigger > 0 && canvasRef.current?.width > 0) {
+      const canvas = canvasRef.current; const ctx = canvas.getContext('2d')
+      ctx.clearRect(0, 0, canvas.width, canvas.height)
+      try { historyStack.current = [ctx.getImageData(0, 0, canvas.width, canvas.height)] } catch (e) {}
+    }
+  }, [clearTrigger])
+
+  useEffect(() => {
+    if (undoTrigger > 0 && canvasRef.current && historyStack.current.length > 1) {
+      const canvas = canvasRef.current; const ctx = canvas.getContext('2d')
+      historyStack.current.pop(); const prev = historyStack.current[historyStack.current.length - 1]
+      if (prev) ctx.putImageData(prev, 0, 0)
+    }
+  }, [undoTrigger])
+
+  const startDrawing = (e) => {
+    if (!isActive && !isEraser) return
+    const canvas = canvasRef.current; const ctx = canvas.getContext('2d')
+    const rect = canvas.getBoundingClientRect(); isDrawing.current = true
+    lastPos.current = { x: e.clientX - rect.left, y: e.clientY - rect.top }
+    ctx.globalCompositeOperation = isEraser ? 'destination-out' : 'source-over'
+    ctx.fillStyle = isEraser ? 'rgba(0,0,0,1)' : '#ffff00'
+    ctx.beginPath(); ctx.arc(lastPos.current.x, lastPos.current.y, isEraser ? 15 : 9, 0, Math.PI * 2); ctx.fill()
+  }
+
+  const draw = (e) => {
+    if (!isDrawing.current || (!isActive && !isEraser)) return
+    const canvas = canvasRef.current; const ctx = canvas.getContext('2d')
+    const rect = canvas.getBoundingClientRect(); const x = e.clientX - rect.left; const y = e.clientY - rect.top
+    ctx.globalCompositeOperation = isEraser ? 'destination-out' : 'source-over'
+    ctx.strokeStyle = isEraser ? 'rgba(0,0,0,1)' : '#ffff00'
+    ctx.lineWidth = isEraser ? 30 : 18; ctx.lineCap = 'round'; ctx.lineJoin = 'round'
+    ctx.beginPath(); ctx.moveTo(lastPos.current.x, lastPos.current.y); ctx.lineTo(x, y); ctx.stroke()
+    lastPos.current = { x, y }
+  }
+
+  const stopDrawing = () => {
+    if (!isDrawing.current) return
+    isDrawing.current = false; const canvas = canvasRef.current; const ctx = canvas.getContext('2d')
+    if (canvas.width > 0 && canvas.height > 0) historyStack.current.push(ctx.getImageData(0, 0, canvas.width, canvas.height))
+  }
+
+  return (
+    <canvas ref={canvasRef} onMouseDown={startDrawing} onMouseMove={draw} onMouseUp={stopDrawing} onMouseLeave={stopDrawing}
+      style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: (isActive || isEraser) ? 'auto' : 'none', zIndex: 50, touchAction: 'none', mixBlendMode: 'multiply', opacity: isActive ? 0.8 : 1 }}
+    />
+  )
+}
+
 // ─── Single PDF file row ──────────────────────────────────────────────────────
-const PdfFileRow = ({ file, category, onFileClick, index }) => {
+const PdfFileRow = ({ file, category, onFileClick }) => {
   const [hovered, setHovered] = useState(false)
   return (
-    <Box
-      onClick={() => onFileClick(file, category)}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      sx={{
-        display: 'flex', alignItems: 'center', gap: '11px',
-        px: '14px', py: '10px', mx: '8px', mb: '2px',
-        cursor: 'pointer', borderRadius: '10px',
-        backgroundColor: hovered ? THEME.blueLight : 'transparent',
-        transition: 'background-color 0.14s ease',
-      }}
-    >
-      <Box sx={{
-        width: 34, height: 34, borderRadius: '8px', flexShrink: 0,
-        backgroundColor: hovered ? THEME.blue : THEME.blueLight,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        transition: 'all 0.15s ease',
-        boxShadow: hovered ? `0 3px 10px ${THEME.blue}40` : 'none',
-      }}>
+    <Box onClick={() => onFileClick(file, category)} onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
+      sx={{ display: 'flex', alignItems: 'center', gap: '11px', px: '14px', py: '10px', mx: '8px', mb: '2px', cursor: 'pointer', borderRadius: '10px', backgroundColor: hovered ? THEME.blueLight : 'transparent', transition: 'background-color 0.14s ease' }}>
+      <Box sx={{ width: 34, height: 34, borderRadius: '8px', flexShrink: 0, backgroundColor: hovered ? THEME.blue : THEME.blueLight, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s ease', boxShadow: hovered ? `0 3px 10px ${THEME.blue}40` : 'none' }}>
         <PictureAsPdfRoundedIcon sx={{ fontSize: 17, color: hovered ? '#fff' : THEME.blue }} />
       </Box>
-      <Typography sx={{
-        fontSize: '13.5px', fontWeight: 400, flex: 1,
-        color: hovered ? THEME.blue : '#374151',
-        transition: 'color 0.14s ease', lineHeight: 1.45, wordBreak: 'break-word',
-      }}>
+      <Typography sx={{ fontSize: '13.5px', fontWeight: 400, flex: 1, color: hovered ? THEME.blue : '#374151', transition: 'color 0.14s ease', lineHeight: 1.45, wordBreak: 'break-word' }}>
         {file.fileName}
       </Typography>
     </Box>
@@ -838,56 +887,24 @@ const PdfFileRow = ({ file, category, onFileClick, index }) => {
 
 // ─── Category accordion card ──────────────────────────────────────────────────
 const CategoryCard = ({ title, emoji, files, category, onFileClick, isOpen, onToggle, badgeColor }) => (
-  <Box sx={{
-    mb: '8px', borderRadius: '12px', overflow: 'hidden',
-    backgroundColor: THEME.white, border: '1px solid',
-    borderColor: isOpen ? THEME.blueBorder : THEME.border,
-    boxShadow: isOpen ? `0 2px 12px rgba(21,101,192,0.10)` : '0 1px 3px rgba(0,0,0,0.05)',
-    transition: 'box-shadow 0.2s ease, border-color 0.2s ease',
-  }}>
-    <Box
-      onClick={onToggle}
-      sx={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        px: '16px', py: '13px', cursor: 'pointer', userSelect: 'none',
-        backgroundColor: isOpen ? THEME.blueLight : '#fafbfd',
-        borderBottom: isOpen ? `1px solid ${THEME.blueBorder}` : '1px solid transparent',
-        transition: 'background-color 0.18s ease',
-        '&:hover': { backgroundColor: THEME.blueLight },
-      }}
-    >
+  <Box sx={{ mb: '8px', borderRadius: '12px', overflow: 'hidden', backgroundColor: THEME.white, border: '1px solid', borderColor: isOpen ? THEME.blueBorder : THEME.border, boxShadow: isOpen ? `0 2px 12px rgba(21,101,192,0.10)` : '0 1px 3px rgba(0,0,0,0.05)', transition: 'box-shadow 0.2s ease, border-color 0.2s ease' }}>
+    <Box onClick={onToggle} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: '16px', py: '13px', cursor: 'pointer', userSelect: 'none', backgroundColor: isOpen ? THEME.blueLight : '#fafbfd', borderBottom: isOpen ? `1px solid ${THEME.blueBorder}` : '1px solid transparent', transition: 'background-color 0.18s ease', '&:hover': { backgroundColor: THEME.blueLight } }}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
         <Box sx={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: badgeColor, flexShrink: 0 }} />
-        <Typography sx={{ fontWeight: 600, fontSize: '13.5px', color: THEME.text }}>
-          {emoji ? `${emoji} ` : ''}{title}
-        </Typography>
+        <Typography sx={{ fontWeight: 600, fontSize: '13.5px', color: THEME.text }}>{emoji ? `${emoji} ` : ''}{title}</Typography>
         {files?.length > 0 && (
-          <Box sx={{
-            px: '7px', py: '1px', borderRadius: '20px',
-            backgroundColor: isOpen ? `${THEME.blue}15` : '#eef2f7',
-            border: `1px solid ${isOpen ? THEME.blueBorder : '#dde3ed'}`,
-          }}>
-            <Typography sx={{ fontSize: '11px', fontWeight: 700, color: isOpen ? THEME.blue : '#64748b' }}>
-              {files.length}
-            </Typography>
+          <Box sx={{ px: '7px', py: '1px', borderRadius: '20px', backgroundColor: isOpen ? `${THEME.blue}15` : '#eef2f7', border: `1px solid ${isOpen ? THEME.blueBorder : '#dde3ed'}` }}>
+            <Typography sx={{ fontSize: '11px', fontWeight: 700, color: isOpen ? THEME.blue : '#64748b' }}>{files.length}</Typography>
           </Box>
         )}
       </Box>
-      <Box sx={{
-        width: 26, height: 26, borderRadius: '50%',
-        backgroundColor: isOpen ? THEME.blueBorder : '#eef2f7',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        transition: 'transform 0.22s ease',
-        transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)', flexShrink: 0,
-      }}>
+      <Box sx={{ width: 26, height: 26, borderRadius: '50%', backgroundColor: isOpen ? THEME.blueBorder : '#eef2f7', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'transform 0.22s ease', transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)', flexShrink: 0 }}>
         <KeyboardArrowDownRoundedIcon sx={{ fontSize: 17, color: isOpen ? THEME.blue : '#9ca3af' }} />
       </Box>
     </Box>
     {isOpen && (
       <Box sx={{ pt: '6px', pb: '8px' }}>
-        {files?.map((file, idx) => (
-          <PdfFileRow key={file._id || file.fileName} file={file} category={category} onFileClick={onFileClick} index={idx} />
-        ))}
+        {files?.map((file, idx) => <PdfFileRow key={file._id || file.fileName} file={file} category={category} onFileClick={onFileClick} index={idx} />)}
       </Box>
     )}
   </Box>
@@ -897,13 +914,19 @@ const CategoryCard = ({ title, emoji, files, category, onFileClick, isOpen, onTo
 const SELPdfViewDialog = ({ open, onClose }) => {
   const { allSELTrackerModules } = useSelector((store) => store.selTrackerList || {})
   const { countries } = useSelector((store) => store.dashboardSliceSetup || {})
-  
   const dispatch = useDispatch()
 
   const [fileViewMode, setFileViewMode] = useState(false)
   const [selectedPdfUrl, setSelectedPdfUrl] = useState('')
   const [selectedCategory, setSelectedCategory] = useState({})
   const [openCollapsible, setOpenCollapsible] = useState({})
+  const [numPages, setNumPages] = useState(null)
+  const [isPdfLoaded, setIsPdfLoaded] = useState(false)
+  const [zoom, setZoom] = useState(2.0)
+  const [pdfOrientation, setPdfOrientation] = useState(null)
+  
+  // 🔥 Track Page Dimension for Skeleton box sizes (Virtualization)
+  const [pageDimensions, setPageDimensions] = useState({ width: 600, height: 800 })
 
   const [assignedSchoolsList, setAssignedSchoolsList] = useState([])
   const [isLoadingSchools, setIsLoadingSchools] = useState(true)
@@ -915,14 +938,18 @@ const SELPdfViewDialog = ({ open, onClose }) => {
   const [availableYears, setAvailableYears] = useState([])
   
   const [currentMonthData, setCurrentMonthData] = useState(null)
-  
+  const [activeTool, setActiveTool] = useState(presentationTools.HAND)
+  const [activePage, setActivePage] = useState(1)
+  const [clearTrigger, setClearTrigger] = useState(0)
+  const [undoTrigger, setUndoTrigger] = useState(0)
+
+  const laserPointerRef = useRef(null)
+  const pageRefs = useRef([])
+  const scrollContainerRef = useRef(null)
   const baseURL = 'https://mypeegu-prodd.s3.ap-south-1.amazonaws.com'
   const isInitialLoad = useRef(true)
 
-  const enterFullscreen = () => { try { if (!document.fullscreenElement) document.documentElement.requestFullscreen?.().catch(() => {}) } catch (e) {} }
-  const exitFullscreen = () => { try { if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {}) } catch (e) {} }
-
-  // ── Calculate Current and Previous Month
+  // ── 1. Calculate Current and Previous Month ──
   const allowedMonths = useMemo(() => {
     const date = new Date()
     const currentMonthIdx = date.getMonth() 
@@ -930,94 +957,54 @@ const SELPdfViewDialog = ({ open, onClose }) => {
     return [MONTHS_LIST[prevMonthIdx], MONTHS_LIST[currentMonthIdx]]
   }, [])
 
-  // ── Handle School Change
+  // ── 2. Handle School Selection ──
   const handleSchoolChange = useCallback((schoolId, schoolsArray = assignedSchoolsList) => {
     const schoolObj = schoolsArray.find(s => s._id === schoolId)
     if (schoolObj) {
       setSelectedSchool(schoolObj._id)
-      
       let countryName = 'India'
-      if (typeof schoolObj.country === 'object') {
-        countryName = schoolObj.country?.name || schoolObj.country?.countryName || 'India'
-      } else if (typeof schoolObj.country === 'string') {
+      if (typeof schoolObj.country === 'object') countryName = schoolObj.country?.name || schoolObj.country?.countryName || 'India'
+      else if (typeof schoolObj.country === 'string') {
         const matchedCountry = countries?.find(c => c._id === schoolObj.country)
         countryName = matchedCountry ? (matchedCountry.name || matchedCountry.countryName || 'India') : 'India'
       }
-      
       const years = schoolObj.assignedSELYears || []
-      setSelectedCountry(countryName)
-      setAvailableYears(years)
-      
-      const newYear = years.length > 0 ? years[0] : ''
-      setSelectedYear(newYear)
-
-      // 🔥 Trigger module fetch directly to avoid waterfall
-      if(countryName && newYear && selectedMonth && !isInitialLoad.current){
-         fetchAllSELTrackerModules(dispatch, countryName, newYear, selectedMonth)
-      }
+      setSelectedCountry(countryName); setAvailableYears(years)
+      if (years.length > 0) setSelectedYear(years[0])
+      else setSelectedYear('')
     }
-  }, [assignedSchoolsList, countries, selectedMonth, dispatch])
+  }, [assignedSchoolsList, countries])
 
-  // ── Initial API Load (Schools + Modules in Parallel Strategy)
+  // ── 3. Initial Load: Fetch Schools via API ──
   useEffect(() => {
-    const fetchSchoolsAndModules = async () => {
+    const fetchSchools = async () => {
       try {
         setIsLoadingSchools(true)
-        
         const body = { page: 1, pageSize: 100 }
         const response = await myPeeguAxios[apiMethods.post](apiEndPoints.viewAllSchools, body)
         const schoolsData = response?.data?.data || response?.data || []
-        
-        setAssignedSchoolsList(schoolsData)
-        
-        const currentM = allowedMonths[1]
-        setSelectedMonth(currentM) 
-
-        if (schoolsData.length > 0) {
-          const firstSchool = schoolsData[0]
-          setSelectedSchool(firstSchool._id)
-          
-          let cName = 'India'
-          if (typeof firstSchool.country === 'object') {
-             cName = firstSchool.country?.name || 'India'
-          } else {
-             const matched = countries?.find(c => c._id === firstSchool.country)
-             cName = matched ? (matched.name || 'India') : 'India'
-          }
-          
-          const yList = firstSchool.assignedSELYears || []
-          const fYear = yList.length > 0 ? yList[0] : ''
-          
-          setSelectedCountry(cName)
-          setAvailableYears(yList)
-          setSelectedYear(fYear)
-
-          // 🔥 Parallel Fetch for Modules
-          if (cName && fYear && currentM) {
-            fetchAllSELTrackerModules(dispatch, cName, fYear, currentM)
-          }
-        }
+        setAssignedSchoolsList(schoolsData); setSelectedMonth(allowedMonths[1]) 
+        if (schoolsData.length > 0) handleSchoolChange(schoolsData[0]._id, schoolsData)
       } catch (error) {
-        console.error("Fetch failed:", error)
-      } finally {
-        setIsLoadingSchools(false)
-        isInitialLoad.current = false
-      }
+        console.error("Schools fetch failed:", error)
+      } finally { setIsLoadingSchools(false); isInitialLoad.current = false }
     }
+    if (open && isInitialLoad.current) fetchSchools()
+  }, [open, allowedMonths, handleSchoolChange])
 
-    if (open && isInitialLoad.current) {
-      fetchSchoolsAndModules()
+  // ── 4. Fetch SEL Modules ──
+  useEffect(() => {
+    if (selectedCountry && selectedYear && selectedMonth && !isInitialLoad.current && !isLoadingSchools) {
+      fetchAllSELTrackerModules(dispatch, selectedCountry, selectedYear, selectedMonth)
     }
-  }, [open, allowedMonths, countries, dispatch])
+  }, [selectedCountry, selectedYear, selectedMonth, isLoadingSchools, dispatch])
 
-  // ── Sync Redux Data
+  // Sync Redux Data
   useEffect(() => {
     if (allSELTrackerModules && Array.isArray(allSELTrackerModules)) {
       const monthData = allSELTrackerModules.find((item) => item.month?.toLowerCase() === selectedMonth?.toLowerCase())
       setCurrentMonthData(monthData || null)
-    } else {
-      setCurrentMonthData(null)
-    }
+    } else setCurrentMonthData(null)
   }, [allSELTrackerModules, selectedMonth])
 
   useEffect(() => {
@@ -1029,24 +1016,110 @@ const SELPdfViewDialog = ({ open, onClose }) => {
   }, [currentMonthData?.categories])
 
   const handleFileClick = (file, category) => {
+    setIsPdfLoaded(false); setPdfOrientation(null); setZoom(2.0)
     const fileUrl = `${baseURL}${file.path}`
     setSelectedPdfUrl(fileUrl)
     setSelectedCategory((s) => ({ ...s, file, category }))
-    setFileViewMode(true)
-    enterFullscreen()
+    setFileViewMode(true); setActiveTool(presentationTools.HAND); setActivePage(1)
   }
 
   const handleBackToList = () => {
-    setFileViewMode(false)
-    setSelectedPdfUrl('')
-    setSelectedCategory({})
-    exitFullscreen()
+    setFileViewMode(false); setSelectedPdfUrl(''); setSelectedCategory({})
+    setNumPages(null); setIsPdfLoaded(false); setZoom(2.0); setPdfOrientation(null)
+    setActiveTool(presentationTools.NONE); setActivePage(1); pageRefs.current = []
   }
 
   const toggleCollapsible = (order) => setOpenCollapsible((prev) => ({ ...prev, [order]: !prev[order] }))
 
-  // Helper check for PDF extensions
+  const onDocumentLoadSuccess = useCallback(
+    async ({ numPages: pages }) => {
+      setNumPages(pages); setIsPdfLoaded(true); pageRefs.current = new Array(pages).fill(null)
+      if (scrollContainerRef.current) scrollContainerRef.current.scrollTop = 0
+      try {
+        const pdf = await pdfjs.getDocument(selectedPdfUrl).promise
+        const page = await pdf.getPage(1)
+        const viewport = page.getViewport({ scale: 1 })
+        
+        // 🔥 Store dimensions for Skeletons
+        setPageDimensions({ width: viewport.width, height: viewport.height })
+        
+        const orientation = viewport.width > viewport.height ? 'landscape' : 'portrait'
+        setPdfOrientation(orientation)
+        setZoom(getDefaultZoom(orientation))
+      } catch (err) {}
+    },
+    [selectedPdfUrl]
+  )
+
+  const increaseZoom = () => setZoom((prev) => Math.min(prev + 0.1, 4.0))
+  const decreaseZoom = () => setZoom((prev) => Math.max(prev - 0.1, 0.5))
+  const clearAllDrawings = () => setClearTrigger((p) => p + 1)
+  const handleUndo = () => setUndoTrigger((p) => p + 1)
+
   const isPDF = typeof selectedPdfUrl === 'string' && (selectedPdfUrl.toLowerCase().endsWith('.pdf') || selectedPdfUrl.toLowerCase().includes('application/pdf'))
+
+  useEffect(() => {
+    if (fileViewMode && pdfOrientation) { setZoom(getDefaultZoom(pdfOrientation)) }
+  }, [pdfOrientation, fileViewMode])
+
+  useEffect(() => {
+    const laserDiv = laserPointerRef.current
+    if (!fileViewMode || !isPDF || !laserDiv) return
+    const move = (e) => {
+      if (activeTool === presentationTools.LASER) {
+        laserDiv.style.transform = `translate(${e.clientX - 10}px,${e.clientY - 10}px)`
+        laserDiv.style.visibility = 'visible'
+      } else { laserDiv.style.visibility = 'hidden' }
+    }
+    const el = document.getElementById('sel-dialog-root')
+    el?.addEventListener('mousemove', move)
+    return () => el?.removeEventListener('mousemove', move)
+  }, [fileViewMode, isPDF, activeTool])
+
+  useEffect(() => {
+    if (!fileViewMode || !isPDF) return
+    const fn = (e) => {
+      if (e.key === '+' || e.key === '=') { e.preventDefault(); increaseZoom() }
+      else if (e.key === '-') { e.preventDefault(); decreaseZoom() }
+      else if (e.key === 'Escape') { e.preventDefault(); handleBackToList() }
+      else if ((e.ctrlKey || e.metaKey) && e.key === 'z') { e.preventDefault(); handleUndo() }
+    }
+    window.addEventListener('keydown', fn)
+    return () => window.removeEventListener('keydown', fn)
+  }, [fileViewMode, isPDF])
+
+  useEffect(() => {
+    if (!fileViewMode || !numPages || !scrollContainerRef.current) return
+    const handler = (entries) => {
+      let maxRatio = 0; let best = -1
+      entries.forEach((entry) => {
+        if (entry.isIntersecting && entry.intersectionRatio > maxRatio) {
+          maxRatio = entry.intersectionRatio
+          const i = pageRefs.current.findIndex((r) => r === entry.target)
+          if (i !== -1) best = i + 1
+        }
+      })
+      if (maxRatio > 0 && best !== -1) setActivePage((p) => p !== best ? best : p)
+    }
+    const obs = new IntersectionObserver(handler, {
+      root: scrollContainerRef.current, threshold: [0.1, 0.3, 0.5, 0.8, 1.0], rootMargin: '-10% 0px -10% 0px',
+    })
+    pageRefs.current.forEach((r) => r && obs.observe(r))
+    return () => obs.disconnect()
+  }, [fileViewMode, numPages, isPdfLoaded])
+
+  const renderPdfSkeleton = () => (
+    <Box sx={{ width: '100vw', height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f5f5f7' }}>
+      <Skeleton variant="rectangular" width={600} height={800} animation="wave" sx={{ borderRadius: '4px' }} />
+    </Box>
+  )
+
+  const getPointerCursor = () => {
+    if (activeTool === presentationTools.HIGHLIGHTER) return 'text'
+    if (activeTool === presentationTools.ERASER) return 'crosshair'
+    if (activeTool === presentationTools.HAND) return 'grab'
+    return 'default'
+  }
 
   return (
     <Dialog
@@ -1059,6 +1132,7 @@ const SELPdfViewDialog = ({ open, onClose }) => {
       scroll="paper"
       PaperProps={{
         sx: {
+          cursor: getPointerCursor(),
           ...(fileViewMode
             ? {
                 backgroundColor: '#f5f5f7', borderRadius: 0, margin: 0, padding: 0,
@@ -1069,14 +1143,28 @@ const SELPdfViewDialog = ({ open, onClose }) => {
                 borderRadius: '16px',
                 boxShadow: '0 20px 60px rgba(21,101,192,0.15), 0 0 0 1px rgba(21,101,192,0.08)',
                 overflow: 'hidden', 
-                maxHeight: { xs: '95vh', sm: '86vh' }, // 🔥 Mobile Responsive Height
+                maxHeight: { xs: '95vh', sm: '86vh' }, // 🔥 Mobile Responsive Scroll Fix
                 margin: { xs: '10px', sm: '32px' },
                 display: 'flex', flexDirection: 'column',
               }),
         },
       }}
+      onContextMenu={(e) => e.preventDefault()}
     >
-      {/* Toolbar for Viewer */}
+      {/* Laser dot */}
+      {activeTool === presentationTools.LASER && (
+        <div
+          ref={laserPointerRef}
+          style={{
+            position: 'fixed', top: 0, left: 0, width: 20, height: 20,
+            backgroundColor: '#d32f2f', borderRadius: '50%', pointerEvents: 'none',
+            boxShadow: '0 0 10px 4px rgba(211,47,47,0.6)', zIndex: 99999,
+            visibility: 'hidden', willChange: 'transform',
+          }}
+        />
+      )}
+
+      {/* Toolbar */}
       {fileViewMode && (
         <Box sx={{ flexShrink: 0, backgroundColor: '#fff', zIndex: 10, boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
           <SELpdfViewTitle
@@ -1084,31 +1172,79 @@ const SELPdfViewDialog = ({ open, onClose }) => {
             selectedCategory={selectedCategory} onClose={handleBackToList}
             selectedMonth={selectedMonth.toLowerCase()} 
             monthOptions={allowedMonths.map(m => ({id: m.toLowerCase(), label: m}))} 
-            onMonthSelect={(m) => {
-               setSelectedMonth(m);
-               if(selectedCountry && selectedYear){
-                 fetchAllSELTrackerModules(dispatch, selectedCountry, selectedYear, m);
-               }
-            }}
+            onMonthSelect={setSelectedMonth}
+            zoom={zoom} increaseZoom={increaseZoom} decreaseZoom={decreaseZoom} isPDF={isPDF}
+            activeTool={activeTool} setActiveTool={setActiveTool}
+            clearAllDrawings={clearAllDrawings} handleUndo={handleUndo}
           />
         </Box>
       )}
 
       {fileViewMode ? (
-        // ── Native Browser Viewer (Fixes 79MB load issue) ──────────────
+        // ── PDF Viewer ──────────────────────────────────────────────────────────
         <Box sx={{ flexGrow: 1, display: 'flex', overflow: 'hidden', backgroundColor: '#e9e9eb' }}>
-            <iframe 
-              src={selectedPdfUrl} 
-              width="100%" 
-              height="100%" 
-              title="Document Viewer" 
-              style={{ border: 'none', width: '100%', height: '100%' }} 
-              loading="lazy"
-            />
+          
+          {/* Main scroll area */}
+          <Box
+            id="pdf-scroll-container"
+            ref={scrollContainerRef}
+            onContextMenu={(e) => e.preventDefault()}
+            sx={{
+              flexGrow: 1, overflow: 'auto', display: 'flex', flexDirection: 'column',
+              alignItems: 'center', gap: '30px', pt: '30px', pb: '40px',
+              '&:active': { cursor: activeTool === presentationTools.HAND ? 'grabbing' : getPointerCursor() },
+            }}
+          >
+            {isPDF ? (
+              <Document
+                file={selectedPdfUrl}
+                onLoadSuccess={onDocumentLoadSuccess}
+                onLoadError={() => {}}
+                loading={renderPdfSkeleton()}
+              >
+                {Array.from(new Array(numPages || 0), (_, i) => {
+                  
+                  // 🔥 Lazy Loading Logic (Virtualization)
+                  const isVisible = Math.abs(activePage - (i + 1)) <= 2;
+
+                  return (
+                  <Box
+                    key={`page_${i + 1}`}
+                    id={`sel-pdf-page-${i + 1}`}
+                    ref={(el) => (pageRefs.current[i] = el)}
+                    sx={{
+                      backgroundColor: '#fff', boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+                      display: 'flex', justifyContent: 'center', alignItems: 'center',
+                      borderRadius: '2px', position: 'relative', overflow: 'hidden',
+                      minHeight: isVisible ? 'auto' : `${pageDimensions.height * zoom}px`,
+                      width: isVisible ? 'auto' : `${pageDimensions.width * zoom}px`,
+                    }}
+                  >
+                    {isVisible ? (
+                      <>
+                        {isPdfLoaded && (
+                          <NativeHighlighter
+                            isActive={activeTool === presentationTools.HIGHLIGHTER}
+                            isEraser={activeTool === presentationTools.ERASER}
+                            clearTrigger={clearTrigger} undoTrigger={undoTrigger}
+                          />
+                        )}
+                        <Page renderTextLayer={false} renderAnnotationLayer={false} pageNumber={i + 1} scale={zoom} loading={<CircularProgress />} />
+                      </>
+                    ) : (
+                      <Typography sx={{ color: '#aaa', fontWeight: 600 }}>Loading Page {i + 1}...</Typography>
+                    )}
+                  </Box>
+                )})}
+              </Document>
+            ) : (
+              <img src={selectedPdfUrl} alt="Resource" style={{ maxWidth: '100%', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }} />
+            )}
+          </Box>
         </Box>
 
       ) : (
-        // ── File List View (Responsive Fix applied here) ───────────────
+        // ── File List View ──────────────────────────────────────────────────────
         <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', flex: 1, overflow: 'hidden' }}>
 
           {/* ── HEADER WITH FILTERS ── */}
@@ -1134,29 +1270,28 @@ const SELPdfViewDialog = ({ open, onClose }) => {
                 <CircularProgress size={24} sx={{ color: THEME.blue }} />
               ) : (
                 <>
-                  <Select
-                    value={selectedSchool}
-                    onChange={(e) => handleSchoolChange(e.target.value)}
-                    size="small"
-                    displayEmpty
-                    sx={{
-                      fontSize: '13.5px', fontWeight: 600, color: THEME.text,
-                      borderRadius: '10px', backgroundColor: THEME.white, minWidth: '150px'
-                    }}
-                  >
-                    {assignedSchoolsList.map((s) => (
-                      <MenuItem key={s._id} value={s._id}>{s.school || s.schoolName || 'School'}</MenuItem>
-                    ))}
-                  </Select>
+                  {/* 1. API Fetched School Selection Dropdown */}
+                  {assignedSchoolsList.length > 0 && (
+                    <Select
+                      value={selectedSchool}
+                      onChange={(e) => handleSchoolChange(e.target.value)}
+                      size="small"
+                      displayEmpty
+                      sx={{
+                        fontSize: '13.5px', fontWeight: 600, color: THEME.text,
+                        borderRadius: '10px', backgroundColor: THEME.white, minWidth: '150px'
+                      }}
+                    >
+                      {assignedSchoolsList.map((s) => (
+                        <MenuItem key={s._id} value={s._id}>{s.school || s.schoolName || 'School'}</MenuItem>
+                      ))}
+                    </Select>
+                  )}
 
+                  {/* 2. Assigned Years Dropdown (Sirf assigned years show honge) */}
                   <Select
                     value={selectedYear}
-                    onChange={(e) => {
-                       setSelectedYear(e.target.value);
-                       if(selectedCountry && selectedMonth) {
-                         fetchAllSELTrackerModules(dispatch, selectedCountry, e.target.value, selectedMonth);
-                       }
-                    }}
+                    onChange={(e) => setSelectedYear(e.target.value)}
                     size="small"
                     displayEmpty
                     sx={{
@@ -1173,14 +1308,10 @@ const SELPdfViewDialog = ({ open, onClose }) => {
                     )}
                   </Select>
 
+                  {/* 3. Restricted Month Dropdown (Sirf 2 Months Only) */}
                   <Select
                     value={selectedMonth}
-                    onChange={(e) => {
-                       setSelectedMonth(e.target.value);
-                       if(selectedCountry && selectedYear) {
-                         fetchAllSELTrackerModules(dispatch, selectedCountry, selectedYear, e.target.value);
-                       }
-                    }}
+                    onChange={(e) => setSelectedMonth(e.target.value)}
                     size="small"
                     sx={{
                       fontSize: '13.5px', fontWeight: 600, color: THEME.text,
@@ -1194,18 +1325,16 @@ const SELPdfViewDialog = ({ open, onClose }) => {
                 </>
               )}
 
+              {/* Close Button */}
               <Box onClick={onClose} sx={{ cursor: 'pointer', ml: 1 }}>
                 <CloseRoundedIcon sx={{ fontSize: 20, color: THEME.textMuted }} />
               </Box>
             </Box>
           </Box>
 
-          {/* ── Category list rendering (Scrollable Area) ── */}
+          {/* Category list rendering */}
           <Box sx={{
-            flex: 1, 
-            overflowY: 'auto', // 🔥 Prevents cutting off options on small screens
-            px: { xs: '10px', sm: '14px' }, 
-            pt: '12px', pb: '16px', backgroundColor: THEME.bg,
+            flex: 1, overflowY: 'auto', px: { xs: '10px', sm: '14px' }, pt: '12px', pb: '16px', backgroundColor: THEME.bg,
             '&::-webkit-scrollbar': { width: '4px' },
             '&::-webkit-scrollbar-track': { background: 'transparent' },
             '&::-webkit-scrollbar-thumb': { background: THEME.blueBorder, borderRadius: '10px' },
