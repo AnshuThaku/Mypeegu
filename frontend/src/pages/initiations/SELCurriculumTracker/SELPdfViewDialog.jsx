@@ -795,10 +795,11 @@ const THEME = {
 
 const BADGE_COLORS = ['#1565c0', '#0277bd', '#00838f', '#2e7d32', '#6a1b9a', '#ad1457', '#e65100']
 
+// 🔥 Zoom Glitch Fixed: Default return 1.0
 const getDefaultZoom = (orientation) => {
   if (orientation === 'landscape') return 1.0
   if (orientation === 'portrait')  return 2.3
-  return 2.0 
+  return 1.0 
 }
 
 // ─── Highlighter Canvas ───────────────────────────────────────────────────────
@@ -922,10 +923,9 @@ const SELPdfViewDialog = ({ open, onClose }) => {
   const [openCollapsible, setOpenCollapsible] = useState({})
   const [numPages, setNumPages] = useState(null)
   const [isPdfLoaded, setIsPdfLoaded] = useState(false)
-  const [zoom, setZoom] = useState(2.0)
-  const [pdfOrientation, setPdfOrientation] = useState(null)
   
-  // 🔥 Track Page Dimension for Skeleton box sizes (Virtualization)
+  const [zoom, setZoom] = useState(1.0)
+  const [pdfOrientation, setPdfOrientation] = useState(null)
   const [pageDimensions, setPageDimensions] = useState({ width: 600, height: 800 })
 
   const [assignedSchoolsList, setAssignedSchoolsList] = useState([])
@@ -949,7 +949,6 @@ const SELPdfViewDialog = ({ open, onClose }) => {
   const baseURL = 'https://mypeegu-prodd.s3.ap-south-1.amazonaws.com'
   const isInitialLoad = useRef(true)
 
-  // ── 1. Calculate Current and Previous Month ──
   const allowedMonths = useMemo(() => {
     const date = new Date()
     const currentMonthIdx = date.getMonth() 
@@ -957,7 +956,6 @@ const SELPdfViewDialog = ({ open, onClose }) => {
     return [MONTHS_LIST[prevMonthIdx], MONTHS_LIST[currentMonthIdx]]
   }, [])
 
-  // ── 2. Handle School Selection ──
   const handleSchoolChange = useCallback((schoolId, schoolsArray = assignedSchoolsList) => {
     const schoolObj = schoolsArray.find(s => s._id === schoolId)
     if (schoolObj) {
@@ -975,7 +973,6 @@ const SELPdfViewDialog = ({ open, onClose }) => {
     }
   }, [assignedSchoolsList, countries])
 
-  // ── 3. Initial Load: Fetch Schools via API ──
   useEffect(() => {
     const fetchSchools = async () => {
       try {
@@ -992,14 +989,12 @@ const SELPdfViewDialog = ({ open, onClose }) => {
     if (open && isInitialLoad.current) fetchSchools()
   }, [open, allowedMonths, handleSchoolChange])
 
-  // ── 4. Fetch SEL Modules ──
   useEffect(() => {
     if (selectedCountry && selectedYear && selectedMonth && !isInitialLoad.current && !isLoadingSchools) {
       fetchAllSELTrackerModules(dispatch, selectedCountry, selectedYear, selectedMonth)
     }
   }, [selectedCountry, selectedYear, selectedMonth, isLoadingSchools, dispatch])
 
-  // Sync Redux Data
   useEffect(() => {
     if (allSELTrackerModules && Array.isArray(allSELTrackerModules)) {
       const monthData = allSELTrackerModules.find((item) => item.month?.toLowerCase() === selectedMonth?.toLowerCase())
@@ -1015,17 +1010,28 @@ const SELPdfViewDialog = ({ open, onClose }) => {
     }
   }, [currentMonthData?.categories])
 
+  // 🔥 MAIN FIX: Direct URL with useMemo to prevent double fetch & enable chunks
   const handleFileClick = (file, category) => {
-    setIsPdfLoaded(false); setPdfOrientation(null); setZoom(2.0)
-    const fileUrl = `${baseURL}${file.path}`
-    setSelectedPdfUrl(fileUrl)
-    setSelectedCategory((s) => ({ ...s, file, category }))
-    setFileViewMode(true); setActiveTool(presentationTools.HAND); setActivePage(1)
+    setIsPdfLoaded(false); setPdfOrientation(null); setZoom(1.0);
+    setSelectedCategory((s) => ({ ...s, file, category }));
+    setFileViewMode(true); setActiveTool(presentationTools.HAND); setActivePage(1);
+    
+    const fileUrl = `${baseURL}${file.path}`;
+    setSelectedPdfUrl(fileUrl);
   }
+
+  // 🔥 File Object memoized to prevent re-renders hitting the network again
+  const pdfFileObject = useMemo(() => {
+    if (!selectedPdfUrl) return null;
+    return {
+      url: selectedPdfUrl,
+      rangeChunkSize: 65536 // Enables 64KB HTTP Range requests for S3 chunking
+    };
+  }, [selectedPdfUrl]);
 
   const handleBackToList = () => {
     setFileViewMode(false); setSelectedPdfUrl(''); setSelectedCategory({})
-    setNumPages(null); setIsPdfLoaded(false); setZoom(2.0); setPdfOrientation(null)
+    setNumPages(null); setIsPdfLoaded(false); setZoom(1.0); setPdfOrientation(null)
     setActiveTool(presentationTools.NONE); setActivePage(1); pageRefs.current = []
   }
 
@@ -1036,11 +1042,10 @@ const SELPdfViewDialog = ({ open, onClose }) => {
       setNumPages(pages); setIsPdfLoaded(true); pageRefs.current = new Array(pages).fill(null)
       if (scrollContainerRef.current) scrollContainerRef.current.scrollTop = 0
       try {
-        const pdf = await pdfjs.getDocument(selectedPdfUrl).promise
+        const pdf = await pdfjs.getDocument(pdfFileObject).promise
         const page = await pdf.getPage(1)
         const viewport = page.getViewport({ scale: 1 })
         
-        // 🔥 Store dimensions for Skeletons
         setPageDimensions({ width: viewport.width, height: viewport.height })
         
         const orientation = viewport.width > viewport.height ? 'landscape' : 'portrait'
@@ -1048,7 +1053,7 @@ const SELPdfViewDialog = ({ open, onClose }) => {
         setZoom(getDefaultZoom(orientation))
       } catch (err) {}
     },
-    [selectedPdfUrl]
+    [pdfFileObject]
   )
 
   const increaseZoom = () => setZoom((prev) => Math.min(prev + 0.1, 4.0))
@@ -1143,7 +1148,7 @@ const SELPdfViewDialog = ({ open, onClose }) => {
                 borderRadius: '16px',
                 boxShadow: '0 20px 60px rgba(21,101,192,0.15), 0 0 0 1px rgba(21,101,192,0.08)',
                 overflow: 'hidden', 
-                maxHeight: { xs: '95vh', sm: '86vh' }, // 🔥 Mobile Responsive Scroll Fix
+                maxHeight: { xs: '95vh', sm: '86vh' },
                 margin: { xs: '10px', sm: '32px' },
                 display: 'flex', flexDirection: 'column',
               }),
@@ -1151,7 +1156,6 @@ const SELPdfViewDialog = ({ open, onClose }) => {
       }}
       onContextMenu={(e) => e.preventDefault()}
     >
-      {/* Laser dot */}
       {activeTool === presentationTools.LASER && (
         <div
           ref={laserPointerRef}
@@ -1164,7 +1168,6 @@ const SELPdfViewDialog = ({ open, onClose }) => {
         />
       )}
 
-      {/* Toolbar */}
       {fileViewMode && (
         <Box sx={{ flexShrink: 0, backgroundColor: '#fff', zIndex: 10, boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
           <SELpdfViewTitle
@@ -1181,10 +1184,8 @@ const SELPdfViewDialog = ({ open, onClose }) => {
       )}
 
       {fileViewMode ? (
-        // ── PDF Viewer ──────────────────────────────────────────────────────────
         <Box sx={{ flexGrow: 1, display: 'flex', overflow: 'hidden', backgroundColor: '#e9e9eb' }}>
           
-          {/* Main scroll area */}
           <Box
             id="pdf-scroll-container"
             ref={scrollContainerRef}
@@ -1195,18 +1196,19 @@ const SELPdfViewDialog = ({ open, onClose }) => {
               '&:active': { cursor: activeTool === presentationTools.HAND ? 'grabbing' : getPointerCursor() },
             }}
           >
-            {isPDF ? (
+            {isPDF && pdfFileObject ? (
               <Document
-                file={selectedPdfUrl}
+                file={pdfFileObject}
+                options={{
+                  disableAutoFetch: false,
+                  disableStream: false
+                }}
                 onLoadSuccess={onDocumentLoadSuccess}
                 onLoadError={() => {}}
                 loading={renderPdfSkeleton()}
               >
                 {Array.from(new Array(numPages || 0), (_, i) => {
-                  
-                  // 🔥 Lazy Loading Logic (Virtualization)
                   const isVisible = Math.abs(activePage - (i + 1)) <= 2;
-
                   return (
                   <Box
                     key={`page_${i + 1}`}
@@ -1242,12 +1244,9 @@ const SELPdfViewDialog = ({ open, onClose }) => {
             )}
           </Box>
         </Box>
-
       ) : (
-        // ── File List View ──────────────────────────────────────────────────────
         <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', flex: 1, overflow: 'hidden' }}>
 
-          {/* ── HEADER WITH FILTERS ── */}
           <Box sx={{
             px: '22px', pt: '20px', pb: '16px', flexShrink: 0,
             backgroundColor: THEME.white, borderBottom: `1px solid ${THEME.border}`,
@@ -1265,93 +1264,39 @@ const SELPdfViewDialog = ({ open, onClose }) => {
             </Box>
 
             <Box sx={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
-              
               {isLoadingSchools ? (
                 <CircularProgress size={24} sx={{ color: THEME.blue }} />
               ) : (
                 <>
-                  {/* 1. API Fetched School Selection Dropdown */}
                   {assignedSchoolsList.length > 0 && (
-                    <Select
-                      value={selectedSchool}
-                      onChange={(e) => handleSchoolChange(e.target.value)}
-                      size="small"
-                      displayEmpty
-                      sx={{
-                        fontSize: '13.5px', fontWeight: 600, color: THEME.text,
-                        borderRadius: '10px', backgroundColor: THEME.white, minWidth: '150px'
-                      }}
-                    >
-                      {assignedSchoolsList.map((s) => (
-                        <MenuItem key={s._id} value={s._id}>{s.school || s.schoolName || 'School'}</MenuItem>
-                      ))}
+                    <Select value={selectedSchool} onChange={(e) => handleSchoolChange(e.target.value)} size="small" displayEmpty sx={{ fontSize: '13.5px', fontWeight: 600, color: THEME.text, borderRadius: '10px', backgroundColor: THEME.white, minWidth: '150px' }}>
+                      {assignedSchoolsList.map((s) => (<MenuItem key={s._id} value={s._id}>{s.school || s.schoolName || 'School'}</MenuItem>))}
                     </Select>
                   )}
-
-                  {/* 2. Assigned Years Dropdown (Sirf assigned years show honge) */}
-                  <Select
-                    value={selectedYear}
-                    onChange={(e) => setSelectedYear(e.target.value)}
-                    size="small"
-                    displayEmpty
-                    sx={{
-                      fontSize: '13.5px', fontWeight: 600, color: THEME.text,
-                      borderRadius: '10px', backgroundColor: THEME.white, minWidth: '110px'
-                    }}
-                  >
-                    {availableYears.length === 0 ? (
-                      <MenuItem value="" disabled>No Years Assigned</MenuItem>
-                    ) : (
-                      availableYears.map((y) => (
-                        <MenuItem key={y} value={y}>{y}</MenuItem>
-                      ))
-                    )}
-                  </Select>
-
-                  {/* 3. Restricted Month Dropdown (Sirf 2 Months Only) */}
-                  <Select
-                    value={selectedMonth}
-                    onChange={(e) => setSelectedMonth(e.target.value)}
-                    size="small"
-                    sx={{
-                      fontSize: '13.5px', fontWeight: 600, color: THEME.text,
-                      borderRadius: '10px', backgroundColor: THEME.white, minWidth: '120px'
-                    }}
-                  >
-                    {allowedMonths.map((m) => (
-                      <MenuItem key={m} value={m}>{m}</MenuItem>
-                    ))}
+                  <Select value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)} size="small" displayEmpty sx={{ fontSize: '13.5px', fontWeight: 600, color: THEME.text, borderRadius: '10px', backgroundColor: THEME.white, minWidth: '110px' }}>
+  {availableYears.length === 0 ? (
+    <MenuItem value="" disabled>No Years Assigned</MenuItem>
+  ) : (
+    availableYears.map((y) => (<MenuItem key={y} value={y}>{y}</MenuItem>))
+  )}
+</Select>
+                  <Select value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} size="small" sx={{ fontSize: '13.5px', fontWeight: 600, color: THEME.text, borderRadius: '10px', backgroundColor: THEME.white, minWidth: '120px' }}>
+                    {allowedMonths.map((m) => (<MenuItem key={m} value={m}>{m}</MenuItem>))}
                   </Select>
                 </>
               )}
-
-              {/* Close Button */}
-              <Box onClick={onClose} sx={{ cursor: 'pointer', ml: 1 }}>
-                <CloseRoundedIcon sx={{ fontSize: 20, color: THEME.textMuted }} />
-              </Box>
+              <Box onClick={onClose} sx={{ cursor: 'pointer', ml: 1 }}><CloseRoundedIcon sx={{ fontSize: 20, color: THEME.textMuted }} /></Box>
             </Box>
           </Box>
 
-          {/* Category list rendering */}
           <Box sx={{
             flex: 1, overflowY: 'auto', px: { xs: '10px', sm: '14px' }, pt: '12px', pb: '16px', backgroundColor: THEME.bg,
-            '&::-webkit-scrollbar': { width: '4px' },
-            '&::-webkit-scrollbar-track': { background: 'transparent' },
-            '&::-webkit-scrollbar-thumb': { background: THEME.blueBorder, borderRadius: '10px' },
-            '&::-webkit-scrollbar-thumb:hover': { background: THEME.blueMid },
+            '&::-webkit-scrollbar': { width: '4px' }, '&::-webkit-scrollbar-track': { background: 'transparent' },
+            '&::-webkit-scrollbar-thumb': { background: THEME.blueBorder, borderRadius: '10px' }, '&::-webkit-scrollbar-thumb:hover': { background: THEME.blueMid },
           }}>
-
             {currentMonthData?.categories?.map((category, idx) => (
-              <CategoryCard
-                key={category.order}
-                title={category.categoryName} files={category.files}
-                category={category} onFileClick={handleFileClick}
-                isOpen={openCollapsible[category.order]}
-                onToggle={() => toggleCollapsible(category.order)}
-                badgeColor={BADGE_COLORS[idx % BADGE_COLORS.length]}
-              />
+              <CategoryCard key={category.order} title={category.categoryName} files={category.files} category={category} onFileClick={handleFileClick} isOpen={openCollapsible[category.order]} onToggle={() => toggleCollapsible(category.order)} badgeColor={BADGE_COLORS[idx % BADGE_COLORS.length]} />
             ))}
-
             {!currentMonthData && !isLoadingSchools && (
               <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: '60px', gap: '10px' }}>
                 <Typography sx={{ fontSize: '36px' }}>📂</Typography>

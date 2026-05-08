@@ -1,193 +1,171 @@
-import React, { useEffect, useState, useCallback, useMemo } from 'react'
-import {
-    Box, IconButton, Table, TableBody, TableCell, TableRow, 
-    TableHead, TableContainer, Typography, TextField, 
-    InputAdornment, Button, Chip
-} from '@mui/material'
+import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
+import { Box, Checkbox, IconButton, Table, TableBody, TableCell, TableRow, TableHead, TableContainer, Typography, TextField, InputAdornment, Button } from '@mui/material'
 import SearchIcon from '@mui/icons-material/Search'
 import FilterListIcon from '@mui/icons-material/FilterList'
 import VisibilityIcon from '@mui/icons-material/Visibility'
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
 import { tableStyles } from '../../../components/styles/tableStyles'
 import { counsellorStyles } from '../../counsellors/counsellorsStyles'
-import { getSELTier } from './SELConstants' // Naya constant file[cite: 5, 7]
-import AddSELAssessmentDialog from './AddSELAssessmentDialog' // Add Dialog
-import CommonFilterDrawer from '../../../components/commonComponents/CustomFilter'
-import { initialFilterStates, initialAccordionStates } from '../../../components/commonComponents/CustomFilter'
+import { selColumn, getSELTier } from './SELConstants'
+import AddSELAssessmentDialog from './AddSELAssessmentDialog'
+import SELDrawer from './SELDrawer'
+import SELAnalytics from './SELAnalytics'
+import UploadSELData from './UploadSELData' // Make sure this matches your actual file name
+import CustomDialog from '../../../components/CustomDialog'
+import CustomPagination from '../../../components/CustomPagination'
+import { formatDate } from '../../../utils/utils'
+import CommonFilterDrawer, { initialFilterStates, initialAccordionStates } from '../../../components/commonComponents/CustomFilter'
+import CustomAutocompleteNew from '../../../components/commonComponents/CustomAutoComplete'
+import { iconConstants } from '../../../resources/theme/iconConstants'
+import { localizationConstants } from '../../../resources/theme/localizationConstants'
 
 const SELAssessment = () => {
+    const tableContainerRef = useRef(null)
+    const { academicYears } = useSelector((store) => store.dashboardSliceSetup)
+
     const [allRecords, setAllRecords] = useState([])
     const [searchText, setSearchText] = useState('')
-    const [filterData, setFilterData] = useState(initialFilterStates)
+    const [rowsPerPage, setRowsPerPage] = useState({ text: '150', value: 150 })
+    const [currentPage, setCurrentPage] = useState(1)
+
+    // Added bulkUpload to modal state
+    const [modal, setModal] = useState({ add: false, drawer: false, filter: false, deleteSingle: false, analytics: false, bulkUpload: false })
+    const [selectedData, setSelectedData] = useState({ domainKey: '', displayLabel: '', total: 0, rowData: null })
+    const [selectedDropDown, setSelectedDropDown] = useState('')
+    const [deleteId, setDeleteId] = useState('')
     
-    const [modal, setModal] = useState({
-        add: false,
-        filter: false,
-        analytics: false 
-    })
+    const [filterData, setFilterData] = useState(initialFilterStates)
 
-    const handleModal = useCallback((name, value) => {
-        setModal((state) => ({ ...state, [name]: value }))
-    }, [])
-
-    // LocalStorage se data load karna
     useEffect(() => {
         const savedData = localStorage.getItem('selAssessmentRecords')
         if (savedData) setAllRecords(JSON.parse(savedData))
     }, [])
 
-    // Search logic
-    const filteredRecords = useMemo(() => {
-        return allRecords.filter(record => 
-            record.studentName?.toLowerCase().includes(searchText.toLowerCase()) ||
-            record.user_id?.includes(searchText)
+    const handleDrawerEditSuccess = () => {
+        const savedData = localStorage.getItem('selAssessmentRecords')
+        if (savedData) setAllRecords(JSON.parse(savedData))
+    }
+
+    const handleModal = useCallback((name, value) => { setModal((state) => ({ ...state, [name]: value })) }, [])
+
+    const getAcademicYearLabel = (id) => {
+        if (!academicYears || !id) return '-'
+        const yearObj = academicYears.find((ay) => ay._id === id)
+        return yearObj ? yearObj.academicYear || yearObj.label : '-'
+    }
+
+    const renderDomainScore = (row, exactKey) => {
+        const score = row.domainScores?.[exactKey] || 0
+        const tier = getSELTier(score, row.version)
+        return (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Box sx={{ width: '28px', height: '24px', borderRadius: '4px', backgroundColor: tier.color, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Typography sx={{ fontSize: '11px', color: 'white', fontWeight: 700 }}>{score}</Typography>
+                </Box>
+                <IconButton size='small' onClick={() => {
+                    setSelectedData({ domainKey: exactKey, displayLabel: exactKey, total: score, rowData: row })
+                    handleModal('drawer', true)
+                }}>
+                    <VisibilityIcon sx={{ fontSize: 16, color: '#64748B' }} />
+                </IconButton>
+            </Box>
         )
+    }
+
+    const renderCellContent = (column, row) => {
+        const fieldName = column.name
+        if (fieldName === 'user_id') return row?.user_id || '-'
+        if (fieldName === 'academicYear') return getAcademicYearLabel(row?.academicYear)
+        if (fieldName === 'createdAt') return formatDate(row?.createdAt) || '-'
+        if (fieldName === 'studentName') return <Typography sx={{ fontSize: '13px', color: '#334155', fontWeight: 500, textTransform: 'uppercase' }}>{row?.studentName || '-'}</Typography>
+
+        if (['SELF-AWARENESS', 'SELF-MANAGEMENT', 'SOCIAL AWARENESS', 'RELATIONSHIP SKILLS', 'RESPONSIBLE DECISION-MAKING', 'ENGAGEMENT', 'OPTIMISM', 'CONNECTEDNESS', 'HAPPINESS'].includes(fieldName)) {
+            return renderDomainScore(row, fieldName)
+        }
+        return '-'
+    }
+
+    const filteredRecords = useMemo(() => {
+        return allRecords.filter((record) => {
+            const nameMatch = record.studentName ? record.studentName.toLowerCase().includes(searchText.toLowerCase()) : false
+            const idMatch = record.user_id ? record.user_id.toLowerCase().includes(searchText.toLowerCase()) : false
+            return searchText ? (nameMatch || idMatch) : true
+        })
     }, [allRecords, searchText])
 
-    const handleDelete = (id) => {
-        const updated = allRecords.filter(item => item.id !== id)
-        setAllRecords(updated)
-        localStorage.setItem('selAssessmentRecords', JSON.stringify(updated))
-    }
+    const tableMinWidth = useMemo(() => selColumn.reduce((sum, col) => sum + (col.width || 120), 0), [])
 
     return (
         <Box sx={counsellorStyles.pageContainerSx}>
-            {/* Toolbar: Search and Action Buttons[cite: 3] */}
             <Box sx={counsellorStyles.toolbarSx}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <TextField
-                        placeholder="Search Student..."
-                        value={searchText}
-                        onChange={(e) => setSearchText(e.target.value)}
-                        size='small'
-                        sx={counsellorStyles.searchFieldSx}
-                        InputProps={{
-                            startAdornment: (
-                                <InputAdornment position='start'>
-                                    <SearchIcon sx={{ fontSize: 18, color: '#94A3B8' }} />
-                                </InputAdornment>
-                            ),
-                        }}
-                    />
-                </Box>
-
+                <TextField placeholder='Search Student or ID...' value={searchText} onChange={(e) => setSearchText(e.target.value)} size='small' sx={counsellorStyles.searchFieldSx} InputProps={{ startAdornment: (<InputAdornment position='start'><SearchIcon sx={{ fontSize: 18 }} /></InputAdornment>) }} />
                 <Box sx={counsellorStyles.actionButtonsSx}>
-                    <IconButton 
-                        sx={counsellorStyles.filterButtonSx}
-                        onClick={() => handleModal('filter', true)}
-                    >
-                        <FilterListIcon sx={{ fontSize: 18, color: '#64748B' }} />
-                    </IconButton>
-
-                    <Button
-                        variant='outlined'
-                        sx={{ 
-                            ...counsellorStyles.addButtonSx, 
-                            borderColor: 'primary.main', 
-                            color: 'primary.main',
-                            backgroundColor: 'transparent'
-                        }}
-                        onClick={() => handleModal('analytics', true)}
-                    >
-                        SEL Analytics
-                    </Button>
-
-                    <Button
-                        variant='contained'
-                        sx={counsellorStyles.addButtonSx}
-                        onClick={() => handleModal('add', true)}
-                    >
-                        + Add SEL Assessment
-                    </Button>
+                    <IconButton onClick={() => handleModal('filter', true)} sx={counsellorStyles.filterButtonSx}><FilterListIcon sx={{ fontSize: 18, color: '#64748B' }} /></IconButton>
+                    <Button variant='outlined' sx={{ ...counsellorStyles.addButtonSx, borderColor: 'primary.main', color: 'primary.main' }} onClick={() => handleModal('analytics', true)}>SEL Analytics</Button>
+                    
+                    {/* Dropdown modified here for Bulk Upload and Select placeholder */}
+                    <CustomAutocompleteNew 
+                        options={[
+                            { id: 'addStudent', label: 'Add Student' },
+                            { id: 'bulkUpload', label: 'Bulk Upload' }
+                        ]} 
+                        sx={{ minWidth: '150px', height: '34px' }} 
+                        fieldSx={{ height: '34px' }} 
+                        placeholder="Select" 
+                        value={selectedDropDown} 
+                        onChange={(e) => { 
+                            if (e === 'addStudent') handleModal('add', true); 
+                            if (e === 'bulkUpload') handleModal('bulkUpload', true); 
+                            setSelectedDropDown(''); 
+                        }} 
+                    />
                 </Box>
             </Box>
 
-            {/* Assessment Data Table[cite: 3] */}
-            <TableContainer sx={{ mt: 2, ...tableStyles.container, flex: 1 }}>
-                <Table stickyHeader size='small'>
+            <TableContainer ref={tableContainerRef} sx={{ mt: 2, ...tableStyles.container, flex: 1, overflowX: 'auto' }}>
+                <Table stickyHeader size='small' sx={{ minWidth: tableMinWidth }}>
                     <TableHead>
                         <TableRow>
-                            <TableCell sx={tableStyles.headerCell}>Student ID</TableCell>
-                            <TableCell sx={tableStyles.headerCell}>Name</TableCell>
-                            <TableCell sx={tableStyles.headerCell}>Grade Version</TableCell>
-                            <TableCell sx={tableStyles.headerCell}>SEL Score (%)</TableCell>
-                            <TableCell sx={tableStyles.headerCell}>Competency Level</TableCell>
-                            <TableCell sx={tableStyles.headerCell}>Actions</TableCell>
+                            {selColumn.map((col) => (
+                                <TableCell key={col.id} sx={{ ...tableStyles.headerCell, width: col.width }}>{col.label}</TableCell>
+                            ))}
                         </TableRow>
                     </TableHead>
                     <TableBody>
-                        {filteredRecords.length > 0 ? filteredRecords.map((row) => {
-                            const tier = getSELTier(row.overallScore); // Scoring logic from PDF
-                            return (
-                                <TableRow key={row.id} sx={tableStyles.bodyRow}>
-                                    <TableCell sx={tableStyles.bodyCell}>{row.user_id}</TableCell>
-                                    <TableCell sx={tableStyles.bodyCell}>{row.studentName}</TableCell>
-                                    <TableCell sx={tableStyles.bodyCell}>
-                                        {row.version === 'versionA' ? 'Grades 3-5' : 'Grades 6-12'}
+                        {filteredRecords.map((row, index) => (
+                            <TableRow key={row.id} sx={tableStyles.bodyRow}>
+                                {selColumn.map((col) => (
+                                    <TableCell key={col.id} sx={tableStyles.bodyCell}>
+                                        {col.id === 'actions' ? (
+                                            <IconButton size="small" onClick={() => { setDeleteId(row.id); handleModal('deleteSingle', true) }} sx={{ color: '#EF4444' }}><DeleteOutlineIcon sx={{ fontSize: 18 }} /></IconButton>
+                                        ) : renderCellContent(col, row)}
                                     </TableCell>
-                                    <TableCell sx={tableStyles.bodyCell}>
-                                        <Typography sx={{ fontWeight: 700, color: tier.color }}>
-                                            {row.overallScore}%
-                                        </Typography>
-                                    </TableCell>
-                                    <TableCell sx={tableStyles.bodyCell}>
-                                        <Chip 
-                                            label={tier.label} 
-                                            size="small" 
-                                            sx={{ backgroundColor: tier.color, color: 'white' }} 
-                                        />
-                                    </TableCell>
-                                    <TableCell sx={tableStyles.bodyCell}>
-                                        <IconButton>
-                                            <VisibilityIcon sx={{ fontSize: 18 }} />
-                                        </IconButton>
-                                        <IconButton onClick={() => handleDelete(row.id)}>
-                                            <DeleteOutlineIcon sx={{ fontSize: 18, color: '#EF4444' }} />
-                                        </IconButton>
-                                    </TableCell>
-                                </TableRow>
-                            )
-                        }) : (
-                            <TableRow>
-                                <TableCell colSpan={6} align="center" sx={{ py: 3 }}>
-                                    <Typography color="textSecondary">No SEL records found.</Typography>
-                                </TableCell>
+                                ))}
                             </TableRow>
-                        )}
+                        ))}
                     </TableBody>
                 </Table>
             </TableContainer>
 
-            {/* Filter Drawer[cite: 4] */}
-            <CommonFilterDrawer
-                onOpen={modal.filter}
-                handleModal={handleModal}
-                filterData={filterData}
-                setFilterData={setFilterData}
-                filterOptions={{
-                    ...initialAccordionStates,
-                    AYs: true,
-                    schools: true,
-                    classrooms: true,
-                }}
-                onApply={() => handleModal('filter', false)}
-            />
-
-            {/* Add Assessment Dialog[cite: 2] */}
-            {modal.add && (
-                <AddSELAssessmentDialog
-                    open={modal.add}
-                    onClose={() => handleModal('add', false)}
-                    onAdd={(newRecord) => {
-                        const updated = [newRecord, ...allRecords]
-                        setAllRecords(updated)
-                        localStorage.setItem('selAssessmentRecords', JSON.stringify(updated))
-                        handleModal('add', false)
-                    }}
+            {modal.add && <AddSELAssessmentDialog open={modal.add} onClose={() => handleModal('add', false)} onAdd={(rec) => setAllRecords([rec, ...allRecords])} />}
+            
+            {/* Added Bulk Upload Component Modal */}
+            {modal.bulkUpload && (
+                <UploadSELData 
+                    open={modal.bulkUpload} 
+                    onClose={() => handleModal('bulkUpload', false)} 
+                    onUploadSuccess={(updatedRecords) => {
+                        setAllRecords(updatedRecords)
+                        handleModal('bulkUpload', false)
+                    }} 
                 />
             )}
+
+            {modal.analytics && <SELAnalytics open={modal.analytics} onClose={() => handleModal('analytics', false)} data={filteredRecords} />}
+            {modal.drawer && <SELDrawer open={modal.drawer} onClose={() => handleModal('drawer', false)} domainKey={selectedData.domainKey} total={selectedData.total} rowData={selectedData.rowData} onEditSuccess={handleDrawerEditSuccess} />}
+            <CustomDialog isOpen={modal.deleteSingle} title="Delete Record" iconName={iconConstants.academicRed} message="Are you sure you want to delete this record?" onLeftButtonClick={() => handleModal('deleteSingle', false)} onRightButtonClick={() => { const filtered = allRecords.filter((r) => r.id !== deleteId); setAllRecords(filtered); localStorage.setItem('selAssessmentRecords', JSON.stringify(filtered)); handleModal('deleteSingle', false); }} rightButtonText="Delete" leftButtonText="Cancel" />
         </Box>
     )
 }
-
-export default SELAssessment;
+export default SELAssessment

@@ -1,9 +1,9 @@
 import React, { useState, useRef } from 'react';
 import CustomDialogWithBreadcrumbs from '../../../components/commonComponents/CustomDialogWithBreadcrumbs';
 import { localizationConstants } from '../../../resources/theme/localizationConstants';
-import AddTeacherPSAssessment from './AddTeacherPSAssessment';
+import AddHeart from './AddHeart';
 
-const AddTeacherPSDialog = ({ open, onClose, onAdd }) => {
+const AddHeartDialog = ({ open, onClose, onAdd }) => {
     const childRef = useRef();
     const [isDisable, setIsDisable] = useState(true);
 
@@ -18,8 +18,8 @@ const AddTeacherPSDialog = ({ open, onClose, onAdd }) => {
     return (
         <CustomDialogWithBreadcrumbs
             onClose={onClose}
-            clickableTitle="H.E.A.R.T. Model"
-            title="Add Educator Survey"
+            clickableTitle="H.E.A.R.T."
+            title="Add Assessment"
             onClick={onClose}
             open={open}
             saveBtnText={localizationConstants.save}
@@ -27,12 +27,9 @@ const AddTeacherPSDialog = ({ open, onClose, onAdd }) => {
             disableSaveBtn={isDisable}
             permittedUser={true}
         >
-            <AddTeacherPSAssessment 
-                ref={childRef} 
-                onSaveStateChange={setIsDisable} 
-            />
+            <AddHeart ref={childRef} onSaveStateChange={setIsDisable} />
         </CustomDialogWithBreadcrumbs>
     );
 };
 
-export default AddTeacherPSDialog;
+export default AddHeartDialog;

@@ -1,4 +1,3 @@
-// AddSELAssessmentDialog.jsx[cite: 2]
 import React, { useState, useRef } from 'react';
 import CustomDialogWithBreadcrumbs from '../../../components/commonComponents/CustomDialogWithBreadcrumbs';
 import { localizationConstants } from '../../../resources/theme/localizationConstants';
@@ -10,7 +9,6 @@ const AddSELAssessmentDialog = ({ open, onClose, onAdd }) => {
 
     const handleSave = () => {
         if (childRef.current) {
-            // Child component se data nikalna[cite: 1]
             const newRecord = childRef.current.getSubmitData();
             onAdd(newRecord);
             onClose();
@@ -24,7 +22,7 @@ const AddSELAssessmentDialog = ({ open, onClose, onAdd }) => {
             title="Add New SEL Assessment"
             onClick={onClose}
             open={open}
-            saveBtnText={localizationConstants.save}
+            saveBtnText={localizationConstants?.save || "Save"}
             onSave={handleSave}
             disableSaveBtn={isDisable}
             permittedUser={true}

@@ -27,12 +27,8 @@ const AddSafeSpacesDialog = ({ open, onClose, onAdd }) => {
             disableSaveBtn={isDisable}
             permittedUser={true}
         >
-            <AddSafeSpaces 
-                ref={childRef} 
-                onSaveStateChange={setIsDisable} 
-            />
+            <AddSafeSpaces ref={childRef} onSaveStateChange={setIsDisable} />
         </CustomDialogWithBreadcrumbs>
     );
 };
-
 export default AddSafeSpacesDialog;

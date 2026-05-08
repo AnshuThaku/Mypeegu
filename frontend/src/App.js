@@ -108,7 +108,7 @@ const SELCompetency = lazy(
 )
 const Pulse = lazy(() => import('./pages/newAssesment/pulse/Pulse'))
 const HeartEducators = lazy(
-	() => import('./pages/newAssesment/heartEducators/TeacherPSMain'),
+	() => import('./pages/newAssesment/heartEducators/Heart'),
 )
 const TeacherProfilingAssessment = lazy(
   () =>

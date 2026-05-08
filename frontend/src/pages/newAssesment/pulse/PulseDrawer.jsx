@@ -16,7 +16,8 @@ import { localizationConstants } from '../../../resources/theme/localizationCons
 import CustomIcon from '../../../components/CustomIcon'
 import { iconConstants } from '../../../resources/theme/iconConstants'
 import CustomButton from '../../../components/CustomButton'
-import { pulseQuestions, pulseOptions } from './pulseConstants'
+// DHYAN DEIN: Yahan se pulseOptions hata diya gaya hai kyunki ab wo har question ke object me hai
+import { pulseQuestions } from './pulseConstants'
 
 const PulseDrawer = ({
     open,
@@ -45,7 +46,7 @@ const PulseDrawer = ({
             onClose={() => (isEditBtnClicked ? '' : onClose())}
         >
             <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
-                <Box className={flexStyles.flexRowCenterSpaceBetween} sx={{ pb: '12px' }}>
+                <Box className={flexStyles.flexRowCenterSpaceBetween} sx={{ pb: '12px', p: 3 }}>
                     <Typography variant={typographyConstants.h4} sx={{ fontWeight: 500, color: 'textColors.blue' }}>
                         {category}
                     </Typography>
@@ -62,9 +63,13 @@ const PulseDrawer = ({
 
                 <Divider />
 
-                <Box sx={{ mt: '20px', height: `calc(100vh - 250px)`, overflow: 'auto' }}>
+                <Box sx={{ mt: '20px', p: 3, pt: 0, height: `calc(100vh - 200px)`, overflow: 'auto' }}>
                     {currentQuestionsList.length > 0 ? (
-                        currentQuestionsList.map((qn, index) => {
+                        currentQuestionsList.map((qnObj, index) => {
+                            // Object se question text aur options nikalna
+                            const qnText = typeof qnObj === 'object' ? qnObj.question : qnObj;
+                            const optionsList = typeof qnObj === 'object' ? (qnObj.options || []) : [];
+
                             let studentAnswer = ''
                             if (rowData) {
                                 const exactKey = `${questionSectionKey}_${index}`
@@ -72,7 +77,7 @@ const PulseDrawer = ({
                                     studentAnswer = rowData.responses[exactKey].option || rowData.responses[exactKey]
                                 } else if (rowData.responses) {
                                     const flat = Object.values(rowData.responses)
-                                    const found = flat.find((item) => item.question === qn)
+                                    const found = flat.find((item) => item.question === qnText)
                                     if (found) studentAnswer = found.option || found
                                 }
                             }
@@ -84,23 +89,30 @@ const PulseDrawer = ({
                                             {`${index + 1}.`}
                                         </Typography>
                                         <Typography variant={typographyConstants.h5} sx={{ color: '#334155' }}>
-                                            {qn}
+                                            {qnText}
                                         </Typography>
                                     </Box>
 
-                                    <FormControl sx={{ mt: '12px', pl: '30px' }} disabled={!isEditBtnClicked}>
-                                        <RadioGroup row value={studentAnswer}>
-                                            {pulseOptions.map((opt) => (
-                                                <FormControlLabel
-                                                    key={opt}
-                                                    value={opt}
-                                                    control={<Radio size='small' />}
-                                                    label={<Typography sx={{ fontSize: '14px' }}>{opt}</Typography>}
-                                                    sx={{ mr: 3 }}
-                                                />
-                                            ))}
-                                        </RadioGroup>
-                                    </FormControl>
+                                    {/* Text type question ke liye TextBox warna RadioGroup */}
+                                    {qnObj.type === 'text' ? (
+                                         <Typography sx={{ mt: 1, pl: '30px', color: 'gray', fontStyle: 'italic' }}>
+                                            {studentAnswer || 'No written response provided.'}
+                                         </Typography>
+                                    ) : (
+                                        <FormControl sx={{ mt: '12px', pl: '30px' }} disabled={!isEditBtnClicked}>
+                                            <RadioGroup row value={studentAnswer}>
+                                                {optionsList.map((opt) => (
+                                                    <FormControlLabel
+                                                        key={opt}
+                                                        value={opt}
+                                                        control={<Radio size='small' />}
+                                                        label={<Typography sx={{ fontSize: '14px' }}>{opt}</Typography>}
+                                                        sx={{ mr: 3 }}
+                                                    />
+                                                ))}
+                                            </RadioGroup>
+                                        </FormControl>
+                                    )}
                                 </Box>
                             )
                         })
@@ -112,7 +124,7 @@ const PulseDrawer = ({
                 </Box>
             </Box>
 
-            <Box sx={{ mt: 'auto', pb: 2 }}>
+            <Box sx={{ mt: 'auto', p: 3, pt: 1 }}>
                 <Box
                     className={flexStyles.flexRowCenterSpaceBetween}
                     sx={{
@@ -125,7 +137,7 @@ const PulseDrawer = ({
                             {localizationConstants.total || 'Total'}
                         </Typography>
                         <Typography variant={typographyConstants.h4} sx={{ color: '#2E7D32', fontWeight: 600 }}>
-                            {total} {/* <--- ACTUAL SCORE DISPLAY HOGA YAHAN */}
+                            {total}
                         </Typography>
                     </Box>
                 </Box>
