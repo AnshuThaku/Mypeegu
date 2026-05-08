@@ -802,6 +802,12 @@ const getDefaultZoom = (orientation) => {
   return 1.0 
 }
 
+// 🔥 FIX: Options ko Component ke bahar banaya taaki infinite loop na aaye!
+const pdfRenderOptions = {
+  disableAutoFetch: false,
+  disableStream: false
+};
+
 // ─── Highlighter Canvas ───────────────────────────────────────────────────────
 const NativeHighlighter = ({ isActive, isEraser, clearTrigger, undoTrigger }) => {
   const canvasRef = useRef(null)
@@ -1010,7 +1016,6 @@ const SELPdfViewDialog = ({ open, onClose }) => {
     }
   }, [currentMonthData?.categories])
 
-  // 🔥 MAIN FIX: Direct URL with useMemo to prevent double fetch & enable chunks
   const handleFileClick = (file, category) => {
     setIsPdfLoaded(false); setPdfOrientation(null); setZoom(1.0);
     setSelectedCategory((s) => ({ ...s, file, category }));
@@ -1020,12 +1025,11 @@ const SELPdfViewDialog = ({ open, onClose }) => {
     setSelectedPdfUrl(fileUrl);
   }
 
-  // 🔥 File Object memoized to prevent re-renders hitting the network again
   const pdfFileObject = useMemo(() => {
     if (!selectedPdfUrl) return null;
     return {
       url: selectedPdfUrl,
-      rangeChunkSize: 65536 // Enables 64KB HTTP Range requests for S3 chunking
+      rangeChunkSize: 65536
     };
   }, [selectedPdfUrl]);
 
@@ -1199,12 +1203,9 @@ const SELPdfViewDialog = ({ open, onClose }) => {
             {isPDF && pdfFileObject ? (
               <Document
                 file={pdfFileObject}
-                options={{
-                  disableAutoFetch: false,
-                  disableStream: false
-                }}
+                options={pdfRenderOptions} // 🔥 YAHAN FIX HAI!
                 onLoadSuccess={onDocumentLoadSuccess}
-                onLoadError={() => {}}
+                onLoadError={(error) => console.error("PDF Load Error:", error)} // 🔥 Error Log Add kiya hai
                 loading={renderPdfSkeleton()}
               >
                 {Array.from(new Array(numPages || 0), (_, i) => {
