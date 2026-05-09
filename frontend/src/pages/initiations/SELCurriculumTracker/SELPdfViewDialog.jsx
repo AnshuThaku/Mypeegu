@@ -795,10 +795,11 @@ const THEME = {
 
 const BADGE_COLORS = ['#1565c0', '#0277bd', '#00838f', '#2e7d32', '#6a1b9a', '#ad1457', '#e65100']
 
+// 🔥 Zoom Logic Updated (90% for Landscape, 210% for Portrait)
 const getDefaultZoom = (orientation) => {
-  if (orientation === 'landscape') return 1.0
-  if (orientation === 'portrait')  return 2.3
-  return 1.0 
+  if (orientation === 'landscape') return 0.9  // 90%
+  if (orientation === 'portrait')  return 2.1  // 210%
+  return 0.9 // Default bhi 90% rakhein
 }
 
 const pdfRenderOptions = {
