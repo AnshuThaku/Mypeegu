@@ -797,11 +797,12 @@ const BADGE_COLORS = ['#1565c0', '#0277bd', '#00838f', '#2e7d32', '#6a1b9a', '#a
 
 // 🔥 Zoom Logic Updated (90% for Landscape, 210% for Portrait)
 const getDefaultZoom = (orientation) => {
-  if (orientation === 'landscape') return 0.9  // 90%
-  if (orientation === 'portrait')  return 2.1  // 210%
-  return 0.9 // Default bhi 90% rakhein
+  if (orientation === 'landscape') return 0.9 
+  if (orientation === 'portrait')  return 2.1 
+  return 0.9 
 }
 
+// 🔥 PDF Options (Outside component to prevent infinite loop)
 const pdfRenderOptions = {
   disableAutoFetch: false,
   disableStream: false
@@ -929,9 +930,6 @@ const SELPdfViewDialog = ({ open, onClose }) => {
   const [numPages, setNumPages] = useState(null)
   const [isPdfLoaded, setIsPdfLoaded] = useState(false)
   
-  // 🔥 Progressive Background Loading State
-  const [pagesToRender, setPagesToRender] = useState(2)
-
   const [zoom, setZoom] = useState(1.0)
   const [pdfOrientation, setPdfOrientation] = useState(null)
   const [pageDimensions, setPageDimensions] = useState({ width: 600, height: 800 })
@@ -947,7 +945,10 @@ const SELPdfViewDialog = ({ open, onClose }) => {
   
   const [currentMonthData, setCurrentMonthData] = useState(null)
   const [activeTool, setActiveTool] = useState(presentationTools.HAND)
+  
+  // 🔥 ACTIVE PAGE STATE: The heart of the virtualization
   const [activePage, setActivePage] = useState(1)
+  
   const [clearTrigger, setClearTrigger] = useState(0)
   const [undoTrigger, setUndoTrigger] = useState(0)
 
@@ -1018,22 +1019,11 @@ const SELPdfViewDialog = ({ open, onClose }) => {
     }
   }, [currentMonthData?.categories])
 
-  // 🔥 Progressive Loader Effect
-  useEffect(() => {
-    if (!isPdfLoaded || !numPages) return
-    if (pagesToRender < numPages) {
-      const timer = setTimeout(() => {
-        setPagesToRender((prev) => Math.min(prev + 2, numPages))
-      }, 800) // Har 800ms mein 2 page background mein load karega
-      return () => clearTimeout(timer)
-    }
-  }, [isPdfLoaded, pagesToRender, numPages])
-
   const handleFileClick = (file, category) => {
     setIsPdfLoaded(false); setPdfOrientation(null); setZoom(1.0);
-    setPagesToRender(2); // 🔥 Reset to 2 on new file
     setSelectedCategory((s) => ({ ...s, file, category }));
-    setFileViewMode(true); setActiveTool(presentationTools.HAND); setActivePage(1);
+    setFileViewMode(true); setActiveTool(presentationTools.HAND); 
+    setActivePage(1); // Default to page 1
     
     const fileUrl = `${baseURL}${file.path}`;
     setSelectedPdfUrl(fileUrl);
@@ -1050,7 +1040,6 @@ const SELPdfViewDialog = ({ open, onClose }) => {
   const handleBackToList = () => {
     setFileViewMode(false); setSelectedPdfUrl(''); setSelectedCategory({})
     setNumPages(null); setIsPdfLoaded(false); setZoom(1.0); setPdfOrientation(null)
-    setPagesToRender(2); // 🔥 Reset to 2
     setActiveTool(presentationTools.NONE); setActivePage(1); pageRefs.current = []
   }
 
@@ -1112,6 +1101,8 @@ const SELPdfViewDialog = ({ open, onClose }) => {
     return () => window.removeEventListener('keydown', fn)
   }, [fileViewMode, isPDF])
 
+  // 🔥 CORE FIX: Intersection Observer that strictly sets the Active Page
+  // This is what powers the Virtualization window.
   useEffect(() => {
     if (!fileViewMode || !numPages || !scrollContainerRef.current) return
     const handler = (entries) => {
@@ -1123,11 +1114,18 @@ const SELPdfViewDialog = ({ open, onClose }) => {
           if (i !== -1) best = i + 1
         }
       })
-      if (maxRatio > 0 && best !== -1) setActivePage((p) => p !== best ? best : p)
+      if (maxRatio > 0 && best !== -1) {
+        setActivePage((p) => p !== best ? best : p)
+      }
     }
+    
+    // Check multiple thresholds so it detects even fast scrolling accurately
     const obs = new IntersectionObserver(handler, {
-      root: scrollContainerRef.current, threshold: [0.1, 0.3, 0.5, 0.8, 1.0], rootMargin: '-10% 0px -10% 0px',
+      root: scrollContainerRef.current, 
+      threshold: [0.1, 0.3, 0.5, 0.8, 1.0], 
+      rootMargin: '100px 0px 100px 0px', // Creates a slight buffer zone for earlier detection
     })
+    
     pageRefs.current.forEach((r) => r && obs.observe(r))
     return () => obs.disconnect()
   }, [fileViewMode, numPages, isPdfLoaded])
@@ -1224,18 +1222,22 @@ const SELPdfViewDialog = ({ open, onClose }) => {
                 loading={renderPdfSkeleton()}
               >
                 {Array.from(new Array(numPages || 0), (_, i) => {
-                  // 🔥 NAYA VISIBILITY LOGIC
-                  const isVisible = (i < pagesToRender) || Math.abs(activePage - (i + 1)) <= 2;
+                  const pageNumber = i + 1;
+                  
+                  // 🔥 THE MAGIC WINDOW: Always keep 5 pages in memory (Current ± 2)
+                  // This stops the blanking issue while preventing memory crashes.
+                  const isVisible = Math.abs(activePage - pageNumber) <= 2;
                   
                   return (
                   <Box
-                    key={`page_${i + 1}`}
-                    id={`sel-pdf-page-${i + 1}`}
+                    key={`page_${pageNumber}`}
+                    id={`sel-pdf-page-${pageNumber}`}
                     ref={(el) => (pageRefs.current[i] = el)}
                     sx={{
                       backgroundColor: '#fff', boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
                       display: 'flex', justifyContent: 'center', alignItems: 'center',
                       borderRadius: '2px', position: 'relative', overflow: 'hidden',
+                      // Crucial for keeping scroll position stable when pages unmount
                       minHeight: isVisible ? 'auto' : `${pageDimensions.height * zoom}px`,
                       width: isVisible ? 'auto' : `${pageDimensions.width * zoom}px`,
                     }}
@@ -1249,10 +1251,19 @@ const SELPdfViewDialog = ({ open, onClose }) => {
                             clearTrigger={clearTrigger} undoTrigger={undoTrigger}
                           />
                         )}
-                        <Page renderTextLayer={false} renderAnnotationLayer={false} pageNumber={i + 1} scale={zoom} loading={<CircularProgress />} />
+                        <Page 
+                           renderTextLayer={false} 
+                           renderAnnotationLayer={false} 
+                           pageNumber={pageNumber} 
+                           scale={zoom} 
+                           loading={<CircularProgress sx={{ color: THEME.blueMid }}/>} 
+                        />
                       </>
                     ) : (
-                      <Typography sx={{ color: '#aaa', fontWeight: 600 }}>Loading Page {i + 1}...</Typography>
+                      // Skeleton placeholder for tombstoned pages
+                      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                         <Typography sx={{ color: '#aaa', fontWeight: 600, fontSize: '18px' }}>Page {pageNumber}</Typography>
+                      </Box>
                     )}
                   </Box>
                 )})}
