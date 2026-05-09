@@ -795,14 +795,12 @@ const THEME = {
 
 const BADGE_COLORS = ['#1565c0', '#0277bd', '#00838f', '#2e7d32', '#6a1b9a', '#ad1457', '#e65100']
 
-// 🔥 Zoom Glitch Fixed: Default return 1.0
 const getDefaultZoom = (orientation) => {
   if (orientation === 'landscape') return 1.0
   if (orientation === 'portrait')  return 2.3
   return 1.0 
 }
 
-// 🔥 FIX: Options ko Component ke bahar banaya taaki infinite loop na aaye!
 const pdfRenderOptions = {
   disableAutoFetch: false,
   disableStream: false
@@ -930,6 +928,9 @@ const SELPdfViewDialog = ({ open, onClose }) => {
   const [numPages, setNumPages] = useState(null)
   const [isPdfLoaded, setIsPdfLoaded] = useState(false)
   
+  // 🔥 Progressive Background Loading State
+  const [pagesToRender, setPagesToRender] = useState(2)
+
   const [zoom, setZoom] = useState(1.0)
   const [pdfOrientation, setPdfOrientation] = useState(null)
   const [pageDimensions, setPageDimensions] = useState({ width: 600, height: 800 })
@@ -1016,8 +1017,20 @@ const SELPdfViewDialog = ({ open, onClose }) => {
     }
   }, [currentMonthData?.categories])
 
+  // 🔥 Progressive Loader Effect
+  useEffect(() => {
+    if (!isPdfLoaded || !numPages) return
+    if (pagesToRender < numPages) {
+      const timer = setTimeout(() => {
+        setPagesToRender((prev) => Math.min(prev + 2, numPages))
+      }, 800) // Har 800ms mein 2 page background mein load karega
+      return () => clearTimeout(timer)
+    }
+  }, [isPdfLoaded, pagesToRender, numPages])
+
   const handleFileClick = (file, category) => {
     setIsPdfLoaded(false); setPdfOrientation(null); setZoom(1.0);
+    setPagesToRender(2); // 🔥 Reset to 2 on new file
     setSelectedCategory((s) => ({ ...s, file, category }));
     setFileViewMode(true); setActiveTool(presentationTools.HAND); setActivePage(1);
     
@@ -1036,6 +1049,7 @@ const SELPdfViewDialog = ({ open, onClose }) => {
   const handleBackToList = () => {
     setFileViewMode(false); setSelectedPdfUrl(''); setSelectedCategory({})
     setNumPages(null); setIsPdfLoaded(false); setZoom(1.0); setPdfOrientation(null)
+    setPagesToRender(2); // 🔥 Reset to 2
     setActiveTool(presentationTools.NONE); setActivePage(1); pageRefs.current = []
   }
 
@@ -1203,13 +1217,15 @@ const SELPdfViewDialog = ({ open, onClose }) => {
             {isPDF && pdfFileObject ? (
               <Document
                 file={pdfFileObject}
-                options={pdfRenderOptions} // 🔥 YAHAN FIX HAI!
+                options={pdfRenderOptions}
                 onLoadSuccess={onDocumentLoadSuccess}
-                onLoadError={(error) => console.error("PDF Load Error:", error)} // 🔥 Error Log Add kiya hai
+                onLoadError={(error) => console.error("PDF Load Error:", error)}
                 loading={renderPdfSkeleton()}
               >
                 {Array.from(new Array(numPages || 0), (_, i) => {
-                  const isVisible = Math.abs(activePage - (i + 1)) <= 2;
+                  // 🔥 NAYA VISIBILITY LOGIC
+                  const isVisible = (i < pagesToRender) || Math.abs(activePage - (i + 1)) <= 2;
+                  
                   return (
                   <Box
                     key={`page_${i + 1}`}
