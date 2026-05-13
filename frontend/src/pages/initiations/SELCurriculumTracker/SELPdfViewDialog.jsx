@@ -766,6 +766,7 @@
 //   )
 // }
 // export default SELPdfViewDialog
+
 import { Dialog, Typography, Box, Skeleton, MenuItem, Select, CircularProgress } from '@mui/material'
 import React, { useCallback, useEffect, useRef, useState, useMemo } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
@@ -802,7 +803,7 @@ const getDefaultZoom = (orientation) => {
   return 0.9 
 }
 
-// 🔥 PDF Options (Infinite loop se bachane ke liye bahar rakha hai)
+// 🔥 PDF Options (Streaming enable karne ke liye zaroori parameters)
 const pdfRenderOptions = {
   disableAutoFetch: false,
   disableStream: false
@@ -926,9 +927,12 @@ const SELPdfViewDialog = ({ open, onClose }) => {
   const [fileViewMode, setFileViewMode] = useState(false)
   const [selectedPdfUrl, setSelectedPdfUrl] = useState('')
   const [selectedCategory, setSelectedCategory] = useState({})
-  const [openCollapsible, setOpenCollapsible] = useState({})
   const [numPages, setNumPages] = useState(null)
   const [isPdfLoaded, setIsPdfLoaded] = useState(false)
+  const [openCollapsible, setOpenCollapsible] = useState({})
+  
+  // 🟢 NAYA STATE: API loading track karne ke liye
+  const [isPdfFetching, setIsPdfFetching] = useState(false)
   
   const [zoom, setZoom] = useState(1.0)
   const [pdfOrientation, setPdfOrientation] = useState(null)
@@ -1019,22 +1023,44 @@ const SELPdfViewDialog = ({ open, onClose }) => {
     }
   }, [currentMonthData?.categories])
 
-  const handleFileClick = (file, category) => {
+  // 🟢 MAIN CHANGE: API hit karne ke liye handleFileClick ko update kiya
+  const handleFileClick = async (file, category) => {
     setIsPdfLoaded(false); setPdfOrientation(null); setZoom(1.0);
     setSelectedCategory((s) => ({ ...s, file, category }));
     setFileViewMode(true); setActiveTool(presentationTools.HAND); 
     setActivePage(1); 
     
-    // 🟢 DYNAMIC FILE URL (S3 bucket se original PDF aayega)
-    const fileUrl = `${baseURL}${file.path}`;
-    setSelectedPdfUrl(fileUrl);
+    // Skeleton dikhane ke liye fetching true kiya
+    setIsPdfFetching(true);
+    setSelectedPdfUrl(''); 
+
+    try {
+      // API call to backend for Presigned URL
+      // Note: Assuming `file.path` is the S3 key (e.g. "sel-modules/doc.pdf")
+      const response = await myPeeguAxios.get(`/counselor/v1/sel/view-pdf?fileName=${encodeURIComponent(file.path)}`);
+
+      if (response?.data?.success && response.data.data?.url) {
+        setSelectedPdfUrl(response.data.data.url); // Secure Streamable URL
+      } else {
+        // Agar backend error de, toh Fallback (direct URL) use karein
+        setSelectedPdfUrl(`${baseURL}${file.path}`);
+      }
+    } catch (error) {
+      console.error("Failed to fetch secure PDF URL:", error);
+      // Fallback in case of network error
+      setSelectedPdfUrl(`${baseURL}${file.path}`);
+    } finally {
+      setIsPdfFetching(false);
+    }
   }
 
+  // 🔥 IMPORTANT: rangeChunkSize allows pdf.js to fetch the 100MB file in 64kb chunks!
   const pdfFileObject = useMemo(() => {
     if (!selectedPdfUrl) return null;
     return {
       url: selectedPdfUrl,
-      rangeChunkSize: 65536
+      rangeChunkSize: 65536,
+      withCredentials: false // S3 pre-signed urls don't need credentials
     };
   }, [selectedPdfUrl]);
 
@@ -1070,7 +1096,7 @@ const SELPdfViewDialog = ({ open, onClose }) => {
   const clearAllDrawings = () => setClearTrigger((p) => p + 1)
   const handleUndo = () => setUndoTrigger((p) => p + 1)
 
-  const isPDF = typeof selectedPdfUrl === 'string' && (selectedPdfUrl.toLowerCase().endsWith('.pdf') || selectedPdfUrl.toLowerCase().includes('application/pdf'))
+  const isPDF = typeof selectedPdfUrl === 'string' && (selectedPdfUrl.toLowerCase().endsWith('.pdf') || selectedPdfUrl.toLowerCase().includes('application/pdf') || selectedPdfUrl.includes('X-Amz-Signature'))
 
   useEffect(() => {
     if (fileViewMode && pdfOrientation) { setZoom(getDefaultZoom(pdfOrientation)) }
@@ -1131,8 +1157,9 @@ const SELPdfViewDialog = ({ open, onClose }) => {
   }, [fileViewMode, numPages, isPdfLoaded])
 
   const renderPdfSkeleton = () => (
-    <Box sx={{ width: '100vw', height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f5f5f7' }}>
-      <Skeleton variant="rectangular" width={600} height={800} animation="wave" sx={{ borderRadius: '4px' }} />
+    <Box sx={{ width: '100vw', height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f5f5f7' }}>
+      <CircularProgress sx={{ color: THEME.blueMid, mb: 2 }} />
+      <Typography sx={{ color: THEME.textMuted, fontWeight: 500 }}>Initializing Secure PDF Stream...</Typography>
     </Box>
   )
 
@@ -1213,7 +1240,10 @@ const SELPdfViewDialog = ({ open, onClose }) => {
               '&:active': { cursor: activeTool === presentationTools.HAND ? 'grabbing' : getPointerCursor() },
             }}
           >
-            {isPDF && pdfFileObject ? (
+            {/* 🟢 NEW: Check loading state before rendering Document */}
+            {isPdfFetching ? (
+              renderPdfSkeleton()
+            ) : isPDF && pdfFileObject ? (
               <Document
                 file={pdfFileObject}
                 options={pdfRenderOptions}

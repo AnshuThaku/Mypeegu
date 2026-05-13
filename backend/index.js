@@ -8,7 +8,8 @@ const mongoose = require('mongoose')
 const dns = require('dns')
 const { loadInitialData, setupOtherSchemeConfig } = require('./cache/dataLoader')
 const { startScheduler } = require('./schedulers')
-
+const selRoutes = require('./routes/counselor-portel/sel.route');
+app.use('/counselor/v1/sel', selRoutes);
 // DO NOT REMOVE THIS SEMICOLAN
 const { initWatchers } = require('./cache/watcher.service')
 

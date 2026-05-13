@@ -3,7 +3,8 @@ const {
  ListObjectsCommand,
  PutObjectCommand,
  DeleteObjectCommand,
- HeadObjectCommand
+ HeadObjectCommand,
+ GetObjectCommand
 } = require("@aws-sdk/client-s3")
 
 const { getSignedUrl } = require("@aws-sdk/s3-request-presigner")
@@ -85,6 +86,38 @@ const generatePreSignedUrl = async (path, fileName, contentType) => {
   logger.info(err)
   return false
 
+ }
+}
+/* ------------------ GENERATE PRESIGNED URL FOR VIEW/DOWNLOAD ------------------ */
+
+const generateViewPreSignedUrl = async (path, fileName) => {
+ const s3Info = fetchS3Info()
+
+ try {
+  const params = {
+   Bucket: s3Info.bucket,
+   Key: `${path}${fileName}`,
+   // 🟢 Ye browser ko batata hai ki ise PDF ki tarah treat karna hai
+   ResponseContentType: "application/pdf", 
+   // 🟢 Ye force karta hai ki file browser me open ho, direct download na ho jaye
+   ResponseContentDisposition: "inline" 
+  }
+
+  const command = new GetObjectCommand(params)
+
+  // URL 1 ghante (3600 seconds) ke liye valid rahega
+  const signedUrl = await getSignedUrl(
+   s3Info.s3Client,
+   command,
+   { expiresIn: 3600 }
+  )
+
+  return signedUrl
+
+ } catch (err) {
+  console.error("View Presigned URL Error:", err)
+  logger.info(err)
+  return false
  }
 }
 
@@ -215,7 +248,8 @@ module.exports = {
  listOfFiles,
  deleteImageFromS3,
  uploadImage,
- generatePreSignedUrl,
+ generatePreSignedUrl,       // (Upload ke liye use karein)
+ generateViewPreSignedUrl,   // 🟢 (PDF dekhne/stream karne ke liye ise use karein)
  getImageBase64StringFromUrl,
  isFileExistInS3
 }
