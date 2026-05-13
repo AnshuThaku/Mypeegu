@@ -543,6 +543,7 @@ import ListItem from '@mui/material/ListItem'
 import ListItemButton from '@mui/material/ListItemButton'
 import ListItemIcon from '@mui/material/ListItemIcon'
 import ListItemText from '@mui/material/ListItemText'
+import SmartToyIcon from '@mui/icons-material/SmartToy'
 import CustomIcon from '../../components/CustomIcon'
 import { iconConstants } from '../../resources/theme/iconConstants'
 import { localizationConstants } from '../../resources/theme/localizationConstants'
@@ -740,6 +741,12 @@ export default function Dashboard() {
           name: localizationConstants.iep,
           routePath: routePaths.initiationsIEP,
           enable: isPermissionOfTeacher,
+        },
+        {
+          id: 999,
+          name: "AI IEP",
+          routePath: routePaths.aiIep,
+          enable: false,
         },
         {
           id: 14,
@@ -955,11 +962,17 @@ export default function Dashboard() {
                           justifyContent: 'center',
                         }}
                       >
-                        <CustomIcon
-                          name={isParentActive ? sideBarItem.selectedIcon : sideBarItem.icon}
-                          style={{ width: '20px', height: '20px' }}
-                          svgStyle={'width: 20px; height: 20px'}
-                        />
+                        {sideBarItem.muiIcon ? (
+                          React.cloneElement(sideBarItem.muiIcon, {
+                            sx: { color: isParentActive ? '#1976D2' : '#666' }
+                          })
+                        ) : (
+                          <CustomIcon
+                            name={isParentActive ? sideBarItem.selectedIcon : sideBarItem.icon}
+                            style={{ width: '20px', height: '20px' }}
+                            svgStyle={'width: 20px; height: 20px'}
+                          />
+                        )}
                       </ListItemIcon>
                       {drawerWidth === 300 && (
                         <>

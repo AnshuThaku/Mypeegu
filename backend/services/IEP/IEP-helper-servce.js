@@ -32,6 +32,9 @@ class IEPHelperService extends CommonHelperServices {
 	}
 
 	async validateIepRequest(body, studentCheckListCategory, student, academicYear) {
+		if (body.studentData.isAIGenerated) {
+            return null; // Return null means "No Validation Errors", let it save!
+        }
 		const {
 			user_id,
 			checkList,

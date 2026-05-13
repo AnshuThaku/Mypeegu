@@ -88,4 +88,5 @@ export const routePaths = {
     newAssessmentSELCompetency: '/dashboard/assessment/sel-competency',
     newAssessmentPulse: '/dashboard/assessment/pulse',
     newAssessmentHeart: '/dashboard/assessment/heart-educators',
+	aiIep: '/dashboard/ai-iep',
 }

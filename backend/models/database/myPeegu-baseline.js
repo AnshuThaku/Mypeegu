@@ -10,109 +10,86 @@ const baselineCategorySchema = new mongoose.Schema({
 
 const baselineSchema = new mongoose.Schema(
     {
-        user_id: {
-            type: String,
-            trim: true,
-        },
-        studentName: {
-            type: String,
-            trim: true,
-        },
+        user_id: { type: String, trim: true },
+        studentName: { type: String, trim: true },
         school: { type: mongoose.Schema.Types.ObjectId, ref: collections.schools },
         studentId: { type: mongoose.Schema.Types.ObjectId, ref: collections.students },
         classRoomId: { type: mongoose.Schema.Types.ObjectId, ref: collections.classrooms },
-        baselineForm: {
-            type: String,
-            trim: true,
-        },
+        baselineForm: { type: String, trim: true },
         baselineCategory: {
             type: String,
             enum: ['Baseline 1', 'Baseline 2', 'Baseline 3'],
         },
+        
+        // 👇 DOMAINS UPDATED WITH STRENGTH FIELDS 👇
         Physical: {
             data: [baselineCategorySchema],
-            total: { type: String, trim: true }, // Purana field backward compatibility ke liye
-            adjustedRisk: { type: Number }, // NAYA FIELD
-            isFlagged: { type: Boolean, default: false } // NAYA FIELD
+            total: { type: String, trim: true },
+            adjustedRisk: { type: Number },
+            isFlagged: { type: Boolean, default: false },
+            strengthScore: { type: Number, default: 0 }, // NAYA FIELD
+            protectiveLevel: { type: String, default: 'Low' } // NAYA FIELD
         },
         Social: {
             data: [baselineCategorySchema],
             total: { type: String, trim: true },
-            adjustedRisk: { type: Number }, // NAYA FIELD
-            isFlagged: { type: Boolean, default: false } // NAYA FIELD
+            adjustedRisk: { type: Number },
+            isFlagged: { type: Boolean, default: false },
+            strengthScore: { type: Number, default: 0 }, // NAYA FIELD
+            protectiveLevel: { type: String, default: 'Low' } // NAYA FIELD
         },
         Emotional: {
             data: [baselineCategorySchema],
             total: { type: String, trim: true },
-            adjustedRisk: { type: Number }, // NAYA FIELD
-            isFlagged: { type: Boolean, default: false } // NAYA FIELD
+            adjustedRisk: { type: Number },
+            isFlagged: { type: Boolean, default: false },
+            strengthScore: { type: Number, default: 0 }, // NAYA FIELD
+            protectiveLevel: { type: String, default: 'Low' } // NAYA FIELD
         },
         Cognitive: {
             data: [baselineCategorySchema],
             total: { type: String, trim: true },
-            adjustedRisk: { type: Number }, // NAYA FIELD
-            isFlagged: { type: Boolean, default: false } // NAYA FIELD
+            adjustedRisk: { type: Number },
+            isFlagged: { type: Boolean, default: false },
+            strengthScore: { type: Number, default: 0 }, // NAYA FIELD
+            protectiveLevel: { type: String, default: 'Low' } // NAYA FIELD
         },
         Language: {
             data: [baselineCategorySchema],
             total: { type: String, trim: true },
-            adjustedRisk: { type: Number }, // NAYA FIELD
-            isFlagged: { type: Boolean, default: false } // NAYA FIELD
+            adjustedRisk: { type: Number },
+            isFlagged: { type: Boolean, default: false },
+            strengthScore: { type: Number, default: 0 }, // NAYA FIELD
+            protectiveLevel: { type: String, default: 'Low' } // NAYA FIELD
         },
 
         // --- NAYE OVERALL SCORING FIELDS ---
-        overallAdjustedRisk: {
-            type: Number
+        overallAdjustedRisk: { type: Number },
+        overallStrengthScore: { type: Number, default: 0 }, // 🌟 NAYA FIELD (Total Strength ke liye)
+        overallTier: {
+            type: String,
+            enum: [
+                'Tier 1 (Universal Support)', 
+                'Tier 1 Monitoring', 
+                'Tier 2 (Targeted Monitoring)', 
+                'Tier 3 (Intensive Support)'
+            ],
+            default: 'Tier 1 (Universal Support)'
         },
-       overallTier: {
-    type: String,
-    enum: [
-        'Tier 1 (Universal Support)', 
-        'Tier 1 Monitoring', 
-        'Tier 2 (Targeted Monitoring)', 
-        'Tier 3 (Intensive Support)'
-    ],
-    default: 'Tier 1 (Universal Support)'
-},
-        totalFlaggedDomains: {
-            type: Number,
-            default: 0
-        },
+        totalFlaggedDomains: { type: Number, default: 0 },
         systemAlerts: [{ type: String }],
         influenceSeverity: { type: String },
         // ------------------------------------
 
-        status: {
-            type: String,
-            default: 'Active',
-            trim: true,
-        },
+        status: { type: String, default: 'Active', trim: true },
         SAY: { type: mongoose.Schema.Types.ObjectId, ref: collections.schoolAcademicYears },
         academicYear: { type: mongoose.Schema.Types.ObjectId, ref: collections.academicYears },
-        graduated: {
-            type: Boolean,
-            default: false,
-        },
-        exited: {
-            type: Boolean,
-            default: false,
-        },
-        createdByName: {
-            type: String,
-            trim: true,
-        },
-        updatedByName: {
-            type: String,
-            trim: true,
-        },
-        createdById: {
-            type: String,
-            trim: true,
-        },
-        updatedById: {
-            type: String,
-            trim: true,
-        },
+        graduated: { type: Boolean, default: false },
+        exited: { type: Boolean, default: false },
+        createdByName: { type: String, trim: true },
+        updatedByName: { type: String, trim: true },
+        createdById: { type: String, trim: true },
+        updatedById: { type: String, trim: true },
         comboKey: { type: String, default: null },
     },
     { timestamps: true },
@@ -126,7 +103,6 @@ baselineSchema.pre('save', function (next) {
         this.isModified('classRoomId') ||
         this.isModified('academicYear')
     ) {
-        console.log(`buildComboKey - ${typeof buildComboKey}`)
         this.comboKey = buildComboKey(this.studentId, this.classRoomId, this.academicYear)
     }
     next()

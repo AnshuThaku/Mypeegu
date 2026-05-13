@@ -951,7 +951,6 @@
 
 // module.exports.BaselineHelperService = BaselineHelperService
 
-
 const { default: mongoose } = require('mongoose')
 const { BaselineRecord } = require('../../models/database/myPeegu-baseline')
 const { GlobalServices } = require('../global-service')
@@ -1176,7 +1175,6 @@ class BaselineHelperService extends GlobalServices {
                 currentRank++
             }
             previousValue = obj.Total
-            // Inject the 'Rank' key into the object
             obj.Rank = currentRank
             return obj
         })
@@ -1184,7 +1182,7 @@ class BaselineHelperService extends GlobalServices {
         return resultArray
     }
 
-async AllSchoolsAggregationPipeline(query) {
+    async AllSchoolsAggregationPipeline(query) {
         const aggregationPipeline = [
             { $match: { ...query } },
             {
@@ -1204,11 +1202,15 @@ async AllSchoolsAggregationPipeline(query) {
                     ETotal: '$Emotional.total',
                     CTotal: '$Cognitive.total',
                     LTotal: '$Language.total',
+                    overallStrength: { $ifNull: ["$overallStrengthScore", 0] },
+                    adjustedRisk: { $ifNull: ["$overallAdjustedRisk", 0] }
                 },
             },
             {
                 $project: {
-                    schoolName: 1, school: 1, PTotal: 1, STotal: 1, ETotal: 1, CTotal: 1, LTotal: 1,
+                    schoolName: 1, school: 1, 
+                    PTotal: 1, STotal: 1, ETotal: 1, CTotal: 1, LTotal: 1,
+                    overallStrength: 1, adjustedRisk: 1
                 },
             },
             {
@@ -1221,13 +1223,17 @@ async AllSchoolsAggregationPipeline(query) {
                     Emotional: { $avg: { $divide: [{ $toInt: '$ETotal' }, 7] } },
                     Social: { $avg: { $divide: [{ $toInt: '$STotal' }, 7] } },
                     Language: { $avg: { $divide: [{ $toInt: '$LTotal' }, 7] } },
+                    totalStrengthScore: { $sum: "$overallStrength" },
+                    totalAdjustedRisk: { $avg: "$adjustedRisk" }, 
+                    totalStudentsScreened: { $sum: 1 }
                 },
             },
             {
                 $project: {
                     school: 1,
                     schoolName: 1,
-                    // 🟢 FIX: Cap max value to 100
+                    totalStudentsScreened: 1,
+                    overallStrengthScore: { $round: ["$totalStrengthScore", 0] },
                     Physical: { $min: [100, { $round: [{ $multiply: ['$Physical', 100] }, 2] }] },
                     Cognitive: { $min: [100, { $round: [{ $multiply: ['$Cognitive', 100] }, 2] }] },
                     Emotional: { $min: [100, { $round: [{ $multiply: ['$Emotional', 100] }, 2] }] },
@@ -1239,10 +1245,10 @@ async AllSchoolsAggregationPipeline(query) {
                                 {
                                     $multiply: [
                                         { $avg: ['$Physical', '$Cognitive', '$Emotional', '$Social', '$Language'] },
-                                        100,
-                                    ],
+                                        1 
+                                    ]
                                 },
-                                2,
+                                2
                             ]
                         }]
                     },
@@ -1252,6 +1258,7 @@ async AllSchoolsAggregationPipeline(query) {
         ]
         return BaselineRecord.aggregate(aggregationPipeline)
     }
+
     async SpecificSchoolsAggregationPipeline(schoolId, academicYears) {
         const aggregationPipeline = [
             {
@@ -1293,7 +1300,6 @@ async AllSchoolsAggregationPipeline(query) {
             {
                 $project: {
                     school: 1, className: '$_id.className', section: '$_id.section', classRoomId: '$_id.classRoomId',
-                    // 🟢 FIX: Cap max value to 100
                     Physical: { $min: [100, { $round: [{ $multiply: ['$Physical', 100] }, 2] }] },
                     Cognitive: { $min: [100, { $round: [{ $multiply: ['$Cognitive', 100] }, 2] }] },
                     Emotional: { $min: [100, { $round: [{ $multiply: ['$Emotional', 100] }, 2] }] },
@@ -1320,7 +1326,7 @@ async AllSchoolsAggregationPipeline(query) {
         return BaselineRecord.aggregate(aggregationPipeline)
     }
 
-   async SpecificClassRoomPipeline(schoolId, academicYears) {
+    async SpecificClassRoomPipeline(schoolId, academicYears) {
         const aggregationPipeline = [
             {
                 $match: {
@@ -1370,7 +1376,6 @@ async AllSchoolsAggregationPipeline(query) {
             {
                 $project: {
                     school: 1, className: 1, section: '$_id.section', classRoomId: '$_id.classRoomId',
-                    // 🟢 FIX: Cap max value to 100
                     Physical: { $min: [100, { $round: [{ $multiply: ['$Physical', 100] }, 2] }] },
                     Cognitive: { $min: [100, { $round: [{ $multiply: ['$Cognitive', 100] }, 2] }] },
                     Emotional: { $min: [100, { $round: [{ $multiply: ['$Emotional', 100] }, 2] }] },
@@ -1397,12 +1402,11 @@ async AllSchoolsAggregationPipeline(query) {
         return Classrooms.aggregate(aggregationPipeline) 
     }
 
-   async groupedDataPipeLine(query) {
+    async groupedDataPipeLine(query) {
         const groupingPipeLine = [
             {
                 $match: query,
             },
-            // Deduplicate by studentId - keeping the most recent baseline record
             { 
                 $sort: { createdAt: -1 } 
             },
@@ -1416,25 +1420,16 @@ async AllSchoolsAggregationPipeline(query) {
                 $group: {
                     _id: null,
                     studentCount: { $sum: 1 },
-                    // Domain Totals (Sum) for Percentage Calculation
                     totalPhysical: { $sum: { $toDouble: { $ifNull: ['$Physical.total', 0] } } },
                     totalSocial: { $sum: { $toDouble: { $ifNull: ['$Social.total', 0] } } },
                     totalEmotional: { $sum: { $toDouble: { $ifNull: ['$Emotional.total', 0] } } },
                     totalCognitive: { $sum: { $toDouble: { $ifNull: ['$Cognitive.total', 0] } } },
                     totalLanguage: { $sum: { $toDouble: { $ifNull: ['$Language.total', 0] } } },
                     
-                    // 🟢 FIX 1: Tiers ke basis par Red/Orange/Green Count (Pie Chart aur KPI ke liye)
-                    rogRed: {
-                        $sum: { $cond: [{ $regexMatch: { input: { $ifNull: ["$overallTier", ""] }, regex: /Tier 3/i } }, 1, 0] }
-                    },
-                    rogOrange: {
-                        $sum: { $cond: [{ $regexMatch: { input: { $ifNull: ["$overallTier", ""] }, regex: /Tier 2/i } }, 1, 0] }
-                    },
-                    rogGreen: {
-                        $sum: { $cond: [{ $regexMatch: { input: { $ifNull: ["$overallTier", ""] }, regex: /Tier 1/i } }, 1, 0] }
-                    },
+                    rogRed: { $sum: { $cond: [{ $regexMatch: { input: { $ifNull: ["$overallTier", ""] }, regex: /Tier 3/i } }, 1, 0] } },
+                    rogOrange: { $sum: { $cond: [{ $regexMatch: { input: { $ifNull: ["$overallTier", ""] }, regex: /Tier 2/i } }, 1, 0] } },
+                    rogGreen: { $sum: { $cond: [{ $regexMatch: { input: { $ifNull: ["$overallTier", ""] }, regex: /Tier 1/i } }, 1, 0] } },
 
-                    // Stacked Bar Chart Categories (0-3, 4-5, 6-7) -> Ab inhe Tier equivalent logic pe map karte hain
                     Physical_0_3: { $sum: { $cond: [{ $lte: [{ $toInt: '$Physical.total' }, 3] }, 1, 0] } },
                     Physical_4_5: { $sum: { $cond: [{ $and: [{ $gte: [{ $toInt: '$Physical.total' }, 4] }, { $lte: [{ $toInt: '$Physical.total' }, 5] }] }, 1, 0] } },
                     Physical_6_7: { $sum: { $cond: [{ $gte: [{ $toInt: '$Physical.total' }, 6] }, 1, 0] } },
@@ -1466,7 +1461,6 @@ async AllSchoolsAggregationPipeline(query) {
                         green: '$rogGreen',
                     },
                     data: {
-                        // 🟢 FIX 2: CAPPING PERCENTAGES TO 100% MAXIMUM
                         Physical: {
                             '0-3': '$Physical_0_3', '4-5': '$Physical_4_5', '6-7': '$Physical_6_7',
                             percentage: { $min: [100, { $cond: [{ $eq: ['$studentCount', 0] }, 0, { $round: [{ $multiply: [{ $divide: ['$totalPhysical', { $multiply: ['$studentCount', 7] }] }, 100] }, 2] }] }] }
@@ -1493,21 +1487,16 @@ async AllSchoolsAggregationPipeline(query) {
         ]
 
         const groupedData = await BaselineRecord.aggregate(groupingPipeLine)
-
         return groupedData.length > 0 ? groupedData[0] : { studentsScreened: 0, rogBreakup: { red: 0, orange: 0, green: 0 }, data: {} };
     }
 
     assignRanks(dataArray, field) {
         const sortedArray = dataArray.slice().sort((a, b) => b[field] - a[field])
-
-        // Reuse the addRanking function to rank each record based on the specified field
         const rankedData = this.addRanking(sortedArray, field)
 
-        // Construct the percentages object for each record
         const transformedData = rankedData.map((record) => {
             const percentages = {}
             const percentageFields = ['Physical', 'Social', 'Emotional', 'Cognitive', 'Language']
-            // Calculate rank for each percentage field
             percentageFields.forEach((percentageField) => {
                 const sortedPercentageArray = sortedArray
                     .slice()
@@ -1519,7 +1508,7 @@ async AllSchoolsAggregationPipeline(query) {
 
                 percentages[percentageField] = {
                     percentage: record[percentageField],
-                    rank: record[percentageField] !== 0 ? percentageRank : 0, // If percentage is 0, set rank to 0
+                    rank: record[percentageField] !== 0 ? percentageRank : 0,
                 }
             })
 
@@ -1536,7 +1525,6 @@ async AllSchoolsAggregationPipeline(query) {
                 percentages: { ...percentages },
             }
         })
-
         return transformedData
     }
 
@@ -1546,212 +1534,203 @@ async AllSchoolsAggregationPipeline(query) {
 
         sortedArray.forEach((entry, index) => {
             if (entry[field] !== previousScore) {
-                // currentRank = index + 1;
                 currentRank = entry[field] === 0 ? 0 : index + 1
             }
             entry.rank = currentRank
             previousScore = entry[field]
         })
-
         return sortedArray
     }
 
-    
 
-
-   // 🟢 🟢 🟢 FINAL AI SCORING & PROTECTIVE STRENGTH ENGINE 🟢 🟢 🟢
+    // =========================================================================
+    // 🧠 🧠 🧠 FINAL MASTER AI SCORING & PROTECTIVE STRENGTH ENGINE 🧠 🧠 🧠
+    // =========================================================================
 
     processBaselineScoring(payload, previousBaseline = null) {
-        // High-Impact Protective Indicators (Weighted Strengths)[cite: 2]
-        // Exact IDs mapped from localizationConstants.js V2
+        // High-Impact Predictive Items (Adds extra protective shield)
         const highImpactPredictors = [
-            "grade2n3EmotionalQn7", // Emotional Regulation
-            "grade2n3CognitiveQn3", // Task Persistence
-            "grade2n3EmotionalQn5", // Positive Peer Relationships
-            "grade2n3CognitiveQn2", // Help-seeking
-            // You can add exact IDs for other grades here as needed
+            "grade2n3EmotionalQn7", "grade2n3CognitiveQn3", 
+            "grade2n3EmotionalQn5", "grade2n3CognitiveQn2"
+            // Aap aage chal kar Excel sheets se ids yahan aur add kar sakte hain
         ];
 
+        // Core & Important Predictors Multipliers Dictionary
         const predictorMapping = {
-            "grade2n3PhysicalQn1": { multiplier: 1.0, isCore: false },
-            "grade2n3SocialQn1": { multiplier: 1.5, isCore: true },     // Core Predictors x1.5[cite: 3]
+            "grade2n3SocialQn1": { multiplier: 1.5, isCore: true }, 
             "grade2n3CognitiveQn3": { multiplier: 1.2, isCore: false },
         };
 
+        let totalWeightedRisk = 0;
+        let totalProtectiveScore = 0;
+        let flaggedDomainsCount = 0;
+        let corePredictorsFailedCount = 0;
+
         const calculateDomainScores = (domainData) => {
             let domainRiskScore = 0;
-            let domainStrengthScore = 0;
+            let domainProtectiveScore = 0;
             let achievedCount = 0;
+            let domainCoreFailed = 0;
             let totalCount = domainData.length;
 
             domainData.forEach(item => {
-                const config = predictorMapping[item.question] || { multiplier: 1.0, isCore: false };
-                const isHighImpact = highImpactPredictors.includes(item.question);
+                // Determine multipliers (System smartly picks up config if provided by frontend, else defaults to 1.0)
+                const config = predictorMapping[item.question] || 
+                               { multiplier: item.multiplier || 1.0, isCore: item.isCore || false };
+                const isHighImpact = highImpactPredictors.includes(item.question) || item.isHighImpact;
 
-                let risk = 0, strength = 0;
+                let risk = 0, protective = 0;
 
-                // Logic based on Document 2 & 3[cite: 2, 3]
+                // 🟢 NEW LOGIC: DUAL SCORING (From "Scoring Workflow.docx")
                 if (item.status === 'Not Achieved' || item.status === 'no' || item.status === false) {
-                    risk = 2; // High Risk[cite: 3]
-                    strength = 0; // No protective effect[cite: 2]
+                    risk = 2; // High Risk
+                    protective = 0; // No protective effect
+                    if (config.isCore) {
+                        corePredictorsFailedCount++;
+                        domainCoreFailed++;
+                    }
                 } else if (item.status === 'Emerging') {
-                    risk = 1; // Medium Risk[cite: 3]
-                    strength = 1; // Developing strength[cite: 2]
+                    risk = 1; // Medium Risk
+                    protective = 1; // Developing strength
                 } else if (item.status === 'Achieved' || item.status === 'yes' || item.status === true) {
-                    risk = 0; // No risk[cite: 3]
-                    strength = isHighImpact ? 3 : 2; // +3 if High Impact, else +2[cite: 2]
+                    risk = 0; // No risk
+                    protective = isHighImpact ? 3 : 2; // +3 if High Impact, else +2
                     achievedCount++;
                 }
 
+                // Apply Weighted Multiplier
                 domainRiskScore += (risk * config.multiplier);
-                domainStrengthScore += strength;
+                domainProtectiveScore += protective;
             });
 
-            // Domain Risk Level[cite: 3]
+            // Domain Interpretation Rules
             let domainRiskLevel = "Low Risk";
-            if (domainRiskScore >= 8) domainRiskLevel = "High Risk";
-            else if (domainRiskScore >= 4) domainRiskLevel = "Monitor";
+            let isFlagged = false;
+            
+            // Flag domain if risk > 5 OR if a Core Predictor failed in this domain
+            if (domainRiskScore > 5 || domainCoreFailed > 0) {
+                domainRiskLevel = "Domain Concern";
+                isFlagged = true;
+            } else if (domainRiskScore > 0 && domainRiskScore <= 5) {
+                domainRiskLevel = "Monitor";
+            }
 
-            // Domain Protective Buffer Level[cite: 2]
             let protectiveLevel = "Low";
-            if (domainStrengthScore >= 10) protectiveLevel = "Strong";
-            else if (domainStrengthScore >= 5) protectiveLevel = "Moderate";
-
-            const percentageAchieved = totalCount > 0 ? (achievedCount / totalCount) * 100 : 0;
+            if (domainProtectiveScore >= 10) protectiveLevel = "Strong";
+            else if (domainProtectiveScore >= 5) protectiveLevel = "Moderate";
 
             return { 
-                riskScore: Math.round(domainRiskScore),
-                strengthScore: domainStrengthScore,
+                weightedRisk: parseFloat(domainRiskScore.toFixed(2)),
+                protectiveScore: domainProtectiveScore,
                 domainRiskLevel,
                 protectiveLevel,
-                percentageAchieved
+                isFlagged,
+                percentageAchieved: totalCount > 0 ? (achievedCount / totalCount) * 100 : 0
             };
         };
 
         const domains = ['Physical', 'Social', 'Emotional', 'Cognitive', 'Language'];
-        let totalRiskScore = 0;
-        let totalStrengthScore = 0;
-
         const domainStats = {};
 
-        // Calculate scores for all domains
+        // Run Engine on All Domains
         domains.forEach(domain => {
             if (payload[domain] && payload[domain].data) {
                 const stats = calculateDomainScores(payload[domain].data);
                 domainStats[domain] = stats;
                 
-                payload[domain].riskScore = stats.riskScore;
-                payload[domain].strengthScore = stats.strengthScore;
+                payload[domain].riskScore = stats.weightedRisk;
+                payload[domain].strengthScore = stats.protectiveScore;
                 payload[domain].protectiveLevel = stats.protectiveLevel;
                 
-                // Backward compatibility for existing code structure
-                payload[domain].adjustedRisk = stats.riskScore; 
-                payload[domain].total = stats.riskScore.toString(); 
+                // Keep backward compatibility so frontend charts don't break
+                payload[domain].adjustedRisk = stats.weightedRisk; 
+                payload[domain].total = stats.weightedRisk.toString(); 
 
-                totalRiskScore += stats.riskScore; 
-                totalStrengthScore += stats.strengthScore;
+                totalWeightedRisk += stats.weightedRisk; 
+                totalProtectiveScore += stats.protectiveScore;
+                
+                if (stats.isFlagged) flaggedDomainsCount++;
             } else {
-                domainStats[domain] = { riskScore: 0, strengthScore: 0, protectiveLevel: "Low", percentageAchieved: 0 };
+                domainStats[domain] = { weightedRisk: 0, protectiveScore: 0, protectiveLevel: "Low", isFlagged: false, percentageAchieved: 0 };
             }
         });
 
+        // ==========================================
+        // 🔮 MASTER FORMULA: OVERALL ADJUSTED RISK
+        // ==========================================
+        // Formula: Overall Adjusted Risk = Total Weighted Risk − (0.5 × Total Protective)
+        let overallAdjustedRisk = totalWeightedRisk - (0.5 * totalProtectiveScore);
+
         const systemAlerts = [];
-        let influenceSeverity = "None";
-
+        
         // ==========================================
-        // 🔮 STRENGTH-BASED AUTOMATION (The 70% Rule)[cite: 3]
+        // 🔮 CROSS-DOMAIN INFLUENCE PATHWAYS (AI AI AI)
         // ==========================================
-        let protectiveAdjustment = 0;
-        if (domainStats.Social?.percentageAchieved >= 70 || domainStats.Emotional?.percentageAchieved >= 70) {
-            // Reduce total risk score by 15%[cite: 3]
-            protectiveAdjustment = totalRiskScore * 0.15;
-            totalRiskScore = totalRiskScore - protectiveAdjustment;
-            systemAlerts.push(`🛡️ Protective Adjustment: Strong Social/Emotional skills reduced overall risk by 15%.`);
+        if (domainStats.Emotional?.weightedRisk > 5) {
+            systemAlerts.push("⚠️ Cross-Domain Alert: High Emotional risk detected. Closely monitor Cognitive/Academic domain as emotional stress significantly reduces attention and learning.");
+        }
+        if (domainStats.Social?.weightedRisk > 5 && domainStats.Emotional?.weightedRisk > 5) {
+            systemAlerts.push("⚠️ Cross-Domain Alert: Combined Social & Emotional risk detected. High likelihood of internalizing difficulties (isolation/anxiety).");
+        }
+        if (domainStats.Physical?.weightedRisk > 5 && domainStats.Cognitive?.weightedRisk > 5) {
+            systemAlerts.push("⚠️ Cross-Domain Alert: Physical (stamina) and Cognitive (attention) risks detected. Verify sleep, health, or stress factors.");
+        }
+        
+        // Protective Buffers (From Baseline Domain Influence Model)
+        if (domainStats.Social?.protectiveScore >= 10) {
+            systemAlerts.push("🛡️ Protective Buffer: Strong Social domain is actively buffering existing emotional risks.");
+        }
+        if (domainStats.Language?.protectiveScore >= 10 && domainStats.Cognitive?.weightedRisk > 5) {
+            systemAlerts.push("🛡️ Protective Buffer: Strong Language skills will help buffer and support the observed Cognitive/Learning difficulties.");
         }
 
         // ==========================================
-        // 🔮 STRENGTH CLUSTER DETECTION[cite: 2]
+        // 🔮 TIER PLACEMENT & OVERRIDE RULES
         // ==========================================
-        const hasAcademicResilience = domainStats.Cognitive?.strengthScore >= 8; 
-        const hasSocialResilience = domainStats.Social?.strengthScore >= 8;
-        const hasEmotionalResilience = domainStats.Emotional?.strengthScore >= 8;
+        let tier = "Tier 1 (On track)";
+        
+        // Base calculation from Adjusted Risk
+        if (overallAdjustedRisk > 20) tier = "Tier 3 (Intensive Support)";
+        else if (overallAdjustedRisk > 10) tier = "Tier 2 (Targeted Monitoring)";
+        else if (overallAdjustedRisk >= 0) tier = "Tier 1 Monitoring";
+        else tier = "Tier 1 (On track)"; // Below 0
 
-        if (hasAcademicResilience) systemAlerts.push("🌟 Academic Resilience Cluster detected: Strong organization and persistence.");
-        if (hasSocialResilience) systemAlerts.push("🌟 Social Resilience Cluster detected: Strong peer relationships and conflict resolution.");
-        if (hasEmotionalResilience) systemAlerts.push("🌟 Emotional Resilience Cluster detected: Strong self-regulation and coping.");
-
-        if (hasAcademicResilience || hasSocialResilience || hasEmotionalResilience) {
-             systemAlerts.push("ℹ️ Protective factors present – monitor before escalation."); //[cite: 2]
+        // 🚨 OVERRIDE RULES (Very Important for accuracy)
+        if (tier === "Tier 1 (On track)" || tier === "Tier 1 Monitoring") {
+            if (flaggedDomainsCount >= 2 || corePredictorsFailedCount === 2) {
+                tier = "Tier 2 (Targeted Monitoring)";
+                systemAlerts.push("🚨 Override Applied: Student moved to Tier 2 due to multiple flagged domains or Core Predictor deficits, despite overall stable score.");
+            }
         }
-
-        // ==========================================
-        // 🔮 STRENGTH-TO-RISK RATIO PRIORITY[cite: 2]
-        // ==========================================
-        let priorityRatio = "";
-        if (totalRiskScore >= 11 && totalStrengthScore >= 35) { 
-            priorityRatio = "Needs support but strong recovery potential"; //[cite: 2]
-            influenceSeverity = "Monitor"; 
-        } else if (totalRiskScore >= 11 && totalStrengthScore < 35) {
-            priorityRatio = "Priority case (High risk + Low protective)"; //[cite: 2]
-            influenceSeverity = "Priority"; //[cite: 3]
-        } else if (totalRiskScore < 11 && totalStrengthScore >= 35) {
-            priorityRatio = "Stable functioning"; //[cite: 2]
-        } else if (totalRiskScore >= 5 && totalStrengthScore < 35) {
-            priorityRatio = "Higher escalation likelihood"; //[cite: 2]
-            influenceSeverity = "Review"; //[cite: 3]
-        }
-
-        if (priorityRatio) systemAlerts.push(`⚖️ Risk-to-Strength Balance: ${priorityRatio}`);
-
-        // ==========================================
-        // 🔮 1. BASELINE 1 CRITICAL ALERT
-        // ==========================================
-        // If this is Baseline 1 and the child is at high risk, trigger an immediate alert!
-        if (payload.baselineCategory === 'Baseline 1') {
-            if (totalRiskScore >= 15 || influenceSeverity === "Priority" || influenceSeverity === "Review") {
-                systemAlerts.push("🚨 Critical Alert: High risk factors identified in initial screening (Baseline 1). Immediate review needed.");
+        if (tier !== "Tier 3 (Intensive Support)") {
+            if (corePredictorsFailedCount > 2) {
+                tier = "Tier 3 (Intensive Support)";
+                systemAlerts.push("🚨 Override Applied: Student moved to Tier 3 due to failure in multiple Core Predictors.");
             }
         }
 
         // ==========================================
-        // 🔮 2. TREND-BASED RISK DETECTION (Baseline 2 & 3)[cite: 3]
+        // 🔮 TREND-BASED RISK DETECTION
         // ==========================================
-        // If previousBaseline data is provided (i.e., Baseline 2 or 3 is being submitted)
         if (previousBaseline && previousBaseline.overallAdjustedRisk !== undefined) {
             const prevRisk = previousBaseline.overallAdjustedRisk;
-            const currentRisk = totalRiskScore;
-            
-            const riskDifference = currentRisk - prevRisk;
+            const riskDifference = overallAdjustedRisk - prevRisk;
 
-            // Pattern 1: Sudden Change Pattern (Large score change)[cite: 3]
             if (riskDifference >= 8) {
-                systemAlerts.push(`📉 Sudden Change Pattern: Risk score jumped significantly from ${prevRisk.toFixed(1)} to ${currentRisk.toFixed(1)}. Check for recent stressors or events.`); //[cite: 3]
-            } 
-            // Pattern 2: Escalation Pattern (Risk increasing)[cite: 3]
-            else if (riskDifference > 2) {
-                systemAlerts.push(`⚠️ Escalation Pattern: Overall risk has increased since ${previousBaseline.baselineCategory}. Closer monitoring required.`); //[cite: 3]
-            } 
-            // Pattern 3: Improvement Pattern (Risk decreasing)[cite: 3]
-            else if (riskDifference <= -3) {
-                systemAlerts.push(`📈 Improvement Pattern: Responding well to support! Risk decreased from ${prevRisk.toFixed(1)} to ${currentRisk.toFixed(1)}.`); //[cite: 3]
+                systemAlerts.push(`📉 Sudden Change Pattern: Risk jumped significantly from ${prevRisk.toFixed(1)} to ${overallAdjustedRisk.toFixed(1)}.`);
+            } else if (riskDifference > 2) {
+                systemAlerts.push(`⚠️ Escalation Pattern: Overall risk has increased since last baseline. Closer monitoring required.`);
+            } else if (riskDifference <= -3) {
+                systemAlerts.push(`📈 Improvement Pattern: Responding well to support! Risk decreased from ${prevRisk.toFixed(1)} to ${overallAdjustedRisk.toFixed(1)}.`);
             }
         }
 
-        // Save AI insights and scores to payload to be saved in the database
-        payload.systemAlerts = systemAlerts;
-        payload.influenceSeverity = influenceSeverity;
-        payload.protectiveScore = totalStrengthScore;
-
-        // ==========================================
-        // OVERALL RISK INDEX & TIER PLACEMENT[cite: 3]
-        // ==========================================
-        let tier = "Tier 1 (Universal Support)";
-        if (totalRiskScore >= 21) tier = "Tier 3 (Intensive Support)"; //[cite: 3]
-        else if (totalRiskScore >= 11) tier = "Tier 2 (Targeted Monitoring)"; //[cite: 3]
-        else if (totalRiskScore >= 5) tier = "Tier 1 Monitoring"; 
-
-        payload.overallAdjustedRisk = Math.round(totalRiskScore);
+        // Save AI insights and scores to payload
+        payload.overallStrengthScore = totalProtectiveScore;
+        payload.overallAdjustedRisk = parseFloat(overallAdjustedRisk.toFixed(2));
         payload.overallTier = tier;
+        payload.systemAlerts = systemAlerts;
+        payload.influenceSeverity = tier.includes("Tier 3") ? "Priority" : (tier.includes("Tier 2") ? "Review" : "None");
 
         return payload;
     }

@@ -782,6 +782,11 @@ import { apiEndPoints, apiMethods } from '../../../utils/apiConstants'
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`
 
+// 🚨 TEST MODE SETTING 🚨
+// Testing ke baad isko 'false' kar dena!
+const TEST_MODE = true; 
+const STATIC_HEAVY_PDF = '/heavy-test.pdf'; // Is file ko apne React ke 'public' folder me rakhein
+
 const MONTHS_LIST = [
   'January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December'
@@ -795,14 +800,14 @@ const THEME = {
 
 const BADGE_COLORS = ['#1565c0', '#0277bd', '#00838f', '#2e7d32', '#6a1b9a', '#ad1457', '#e65100']
 
-// 🔥 Zoom Logic Updated (90% for Landscape, 210% for Portrait)
+// 🔥 Zoom Logic
 const getDefaultZoom = (orientation) => {
   if (orientation === 'landscape') return 0.9 
   if (orientation === 'portrait')  return 2.1 
   return 0.9 
 }
 
-// 🔥 PDF Options (Outside component to prevent infinite loop)
+// 🔥 PDF Options (Infinite loop se bachane ke liye bahar rakha hai)
 const pdfRenderOptions = {
   disableAutoFetch: false,
   disableStream: false
@@ -1023,9 +1028,10 @@ const SELPdfViewDialog = ({ open, onClose }) => {
     setIsPdfLoaded(false); setPdfOrientation(null); setZoom(1.0);
     setSelectedCategory((s) => ({ ...s, file, category }));
     setFileViewMode(true); setActiveTool(presentationTools.HAND); 
-    setActivePage(1); // Default to page 1
+    setActivePage(1); 
     
-    const fileUrl = `${baseURL}${file.path}`;
+    // 🔥 TEST MODE INJECTION
+    const fileUrl = TEST_MODE ? STATIC_HEAVY_PDF : `${baseURL}${file.path}`;
     setSelectedPdfUrl(fileUrl);
   }
 
@@ -1101,8 +1107,7 @@ const SELPdfViewDialog = ({ open, onClose }) => {
     return () => window.removeEventListener('keydown', fn)
   }, [fileViewMode, isPDF])
 
-  // 🔥 CORE FIX: Intersection Observer that strictly sets the Active Page
-  // This is what powers the Virtualization window.
+  // 🔥 CORE FIX: Intersection Observer (LAPTOP BEAST MODE)
   useEffect(() => {
     if (!fileViewMode || !numPages || !scrollContainerRef.current) return
     const handler = (entries) => {
@@ -1119,11 +1124,11 @@ const SELPdfViewDialog = ({ open, onClose }) => {
       }
     }
     
-    // Check multiple thresholds so it detects even fast scrolling accurately
     const obs = new IntersectionObserver(handler, {
       root: scrollContainerRef.current, 
       threshold: [0.1, 0.3, 0.5, 0.8, 1.0], 
-      rootMargin: '100px 0px 100px 0px', // Creates a slight buffer zone for earlier detection
+      // 🔥 8000px scanner range for laptop speed
+      rootMargin: '8000px 0px 8000px 0px', 
     })
     
     pageRefs.current.forEach((r) => r && obs.observe(r))
@@ -1224,9 +1229,8 @@ const SELPdfViewDialog = ({ open, onClose }) => {
                 {Array.from(new Array(numPages || 0), (_, i) => {
                   const pageNumber = i + 1;
                   
-                  // 🔥 THE MAGIC WINDOW: Always keep 5 pages in memory (Current ± 2)
-                  // This stops the blanking issue while preventing memory crashes.
-                  const isVisible = Math.abs(activePage - pageNumber) <= 2;
+                  // 🔥 THE MAGIC WINDOW (LAPTOP MODE): Keep 21 pages in memory (Current ± 10)
+                  const isVisible = Math.abs(activePage - pageNumber) <= 10;
                   
                   return (
                   <Box
@@ -1237,7 +1241,6 @@ const SELPdfViewDialog = ({ open, onClose }) => {
                       backgroundColor: '#fff', boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
                       display: 'flex', justifyContent: 'center', alignItems: 'center',
                       borderRadius: '2px', position: 'relative', overflow: 'hidden',
-                      // Crucial for keeping scroll position stable when pages unmount
                       minHeight: isVisible ? 'auto' : `${pageDimensions.height * zoom}px`,
                       width: isVisible ? 'auto' : `${pageDimensions.width * zoom}px`,
                     }}
@@ -1260,7 +1263,6 @@ const SELPdfViewDialog = ({ open, onClose }) => {
                         />
                       </>
                     ) : (
-                      // Skeleton placeholder for tombstoned pages
                       <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
                          <Typography sx={{ color: '#aaa', fontWeight: 600, fontSize: '18px' }}>Page {pageNumber}</Typography>
                       </Box>
@@ -1303,12 +1305,12 @@ const SELPdfViewDialog = ({ open, onClose }) => {
                     </Select>
                   )}
                   <Select value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)} size="small" displayEmpty sx={{ fontSize: '13.5px', fontWeight: 600, color: THEME.text, borderRadius: '10px', backgroundColor: THEME.white, minWidth: '110px' }}>
-  {availableYears.length === 0 ? (
-    <MenuItem value="" disabled>No Years Assigned</MenuItem>
-  ) : (
-    availableYears.map((y) => (<MenuItem key={y} value={y}>{y}</MenuItem>))
-  )}
-</Select>
+                    {availableYears.length === 0 ? (
+                      <MenuItem value="" disabled>No Years Assigned</MenuItem>
+                    ) : (
+                      availableYears.map((y) => (<MenuItem key={y} value={y}>{y}</MenuItem>))
+                    )}
+                  </Select>
                   <Select value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} size="small" sx={{ fontSize: '13.5px', fontWeight: 600, color: THEME.text, borderRadius: '10px', backgroundColor: THEME.white, minWidth: '120px' }}>
                     {allowedMonths.map((m) => (<MenuItem key={m} value={m}>{m}</MenuItem>))}
                   </Select>

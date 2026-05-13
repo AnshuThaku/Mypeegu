@@ -17,19 +17,19 @@
 // import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp'
 // import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown'
 // import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
-// import CustomIcon from '../../../components/CustomIcon'
-// import { iconConstants } from '../../../resources/theme/iconConstants'
-// import { localizationConstants } from '../../../resources/theme/localizationConstants'
-// import { sortEnum, formatDate } from '../../../utils/utils'
-// import CustomPagination from '../../../components/CustomPagination'
-// import { StudentIEPColumns } from './iEPConstants'
-// import CustomDialog from '../../../components/CustomDialog'
-// import { fetchAllStudentIEP, handleIepRecordDeletion } from './iEPFunctions'
-// import { handleDownloadExcelForStudentIEP } from './iEPThunk'
-// import EditIEPDialog from './EditIEPDialog'
-// import { tableStyles } from '../../../components/styles/tableStyles'
+// import CustomIcon from '../../../../components/CustomIcon'
+// import { iconConstants } from '../../../../resources/theme/iconConstants'
+// import { localizationConstants } from '../../../../resources/theme/localizationConstants'
+// import { sortEnum, formatDate } from '../../../../utils/utils'
+// import CustomPagination from '../../../../components/CustomPagination'
+// import { StudentIEPColumns } from '../iEPConstants'
+// import CustomDialog from '../../../../components/CustomDialog'
+// import { fetchAllStudentIEP, handleIepRecordDeletion } from '../iEPFunctions'
+// import { handleDownloadExcelForStudentIEP } from '../iEPThunk'
+// import EditIEPDialog from '../EditIEPDialog'
+// import { tableStyles } from '../../../../components/styles/tableStyles'
 
-// const IEPTableList = ({
+// const AIIEPTableList = ({
 // 	allStudentsForspecificSchool,
 // 	sortKeys,
 // 	setSortKeys,
@@ -315,14 +315,14 @@
 // 	)
 // }
 
-// export default IEPTableList
+// export default AIIEPTableList
 /* eslint-disable react-hooks/exhaustive-deps */
-
-
 import React, { useEffect, useRef, useState, useMemo } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
+import { useNavigate } from 'react-router-dom' 
 import {
     Box,
+    Button,
     IconButton,
     Table,
     TableBody,
@@ -337,19 +337,19 @@ import UnfoldMoreIcon from '@mui/icons-material/UnfoldMore'
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp'
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown'
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
-import CustomIcon from '../../../components/CustomIcon'
-import { iconConstants } from '../../../resources/theme/iconConstants'
-import { localizationConstants } from '../../../resources/theme/localizationConstants'
-import { sortEnum, formatDate } from '../../../utils/utils'
-import CustomPagination from '../../../components/CustomPagination'
-import { StudentIEPColumns } from './iEPConstants'
-import CustomDialog from '../../../components/CustomDialog'
-import { fetchAllStudentIEP, handleIepRecordDeletion } from './iEPFunctions'
-import { handleDownloadExcelForStudentIEP } from './iEPThunk'
-import EditIEPDialog from './EditIEPDialog'
-import { tableStyles } from '../../../components/styles/tableStyles'
+import CustomIcon from '../../../../components/CustomIcon'
+import { iconConstants } from '../../../../resources/theme/iconConstants'
+import { localizationConstants } from '../../../../resources/theme/localizationConstants'
+import { sortEnum, formatDate } from '../../../../utils/utils'
+import CustomPagination from '../../../../components/CustomPagination'
+import { StudentIEPColumns } from '../iEPConstants'
+import CustomDialog from '../../../../components/CustomDialog'
+import { fetchAllStudentIEP, handleIepRecordDeletion } from '../iEPFunctions'
+import { handleDownloadExcelForStudentIEP } from '../iEPThunk'
+import EditIEPDialog from '../EditIEPDialog'
+import { tableStyles } from '../../../../components/styles/tableStyles'
 
-const IEPTableList = ({
+const AIIEPTableList = ({
     allStudentsForspecificSchool,
     sortKeys,
     setSortKeys,
@@ -364,6 +364,7 @@ const IEPTableList = ({
     handleModal, // Parent (StudentIEP) se aa raha hai
 }) => {
     const dispatch = useDispatch()
+    const navigate = useNavigate() 
     const tableContainerRef = useRef(null)
     const [hoveredRowIndex, setHoveredRowIndex] = useState(null)
     const [rowDataSelected, setRowDataSelected] = useState({})
@@ -399,6 +400,7 @@ const IEPTableList = ({
         if (fieldName === 'academicYear') return row?.academicYear || localizationConstants.notApplicable
         if (fieldName === 'studentName') return row?.studentName || '-'
         if (fieldName === 'createdAt') return formatDate(row?.createdAt) || '-'
+        // ... (rest of your cell mappings)
         return row[fieldName] || '-'
     }
 
@@ -450,31 +452,22 @@ const IEPTableList = ({
                                         key={row._id || index}
                                         onMouseEnter={() => setHoveredRowIndex(index)}
                                         onMouseLeave={() => setHoveredRowIndex(null)}
-                                        onClick={() => {
-                                            // 🟢 ASLI FIX YAHAN HAI
-                                            // 1. Purane modal ko data dene ke liye ye zaroori hai
-                                            setRowDataSelected(row);
-                                            // 2. 'edit' bhejenge taaki parent component saal (year) check kare
-                                            handleModal('edit', true, row.user_id);
-                                        }}
-                                        sx={{ ...tableStyles.bodyRow, cursor: 'pointer' }}
+                                        sx={{ ...tableStyles.bodyRow, cursor: 'default' }}
                                     >
                                         {columns.map((column) => (
                                             <TableCell key={column.id} sx={{ ...tableStyles.bodyCell, width: column.width }}>
                                                 {column.id === localizationConstants.showCategoryActions ? (
-                                                    appPermissions?.['student-IEP']?.edit && hoveredRowIndex === index ? (
-                                                        <IconButton
-                                                            size='small'
-                                                            onClick={(e) => {
-                                                                e.stopPropagation() // Modal open hone se rokne ke liye
-                                                                setRowDataSelected(row)
-                                                                setDeleteDialog(true)
-                                                            }}
-                                                            sx={{ color: '#EF4444', '&:hover': { backgroundColor: 'rgba(239, 68, 68, 0.1)' } }}
-                                                        >
-                                                            <DeleteOutlineIcon sx={{ fontSize: 18 }} />
-                                                        </IconButton>
-                                                    ) : null
+                                                    <Button
+                                                        variant="contained"
+                                                        size="small"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation()
+                                                            navigate(`/dashboard/ai-iep/${row.user_id}`)
+                                                        }}
+                                                        sx={{ textTransform: 'none', fontWeight: 600, bgcolor: '#3B82F6', '&:hover': { bgcolor: '#2563EB' } }}
+                                                    >
+                                                        AI IEP 🚀
+                                                    </Button>
                                                 ) : (
                                                     <Typography sx={{ fontSize: '13px', color: '#334155', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
                                                         {renderCellContent(column, row)}
@@ -522,7 +515,6 @@ const IEPTableList = ({
                 rightButtonText={localizationConstants.yesDelete}
             />
 
-            {/* 🟢 PURANA LEGACY EDIT MODAL YAHAN HAIN */}
             {modal.edit && (
                 <EditIEPDialog
                     open={modal.edit}
@@ -535,4 +527,4 @@ const IEPTableList = ({
     )
 }
 
-export default IEPTableList
+export default AIIEPTableList

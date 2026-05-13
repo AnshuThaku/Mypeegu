@@ -841,11 +841,28 @@ class SendChecklistServices extends SendChecklistHelperService {
             return res.status(400).json(new FailureResponse(globalConstants.messages.sendCheckListRecordAlreadyExists))
         }
 
-        // --- STEP 1: Process Categories ---
+        // 🟢 ASLI FIX YAHAN HAI: Ye line miss ho gayi thi aapke code me!
         const finalCategoriesData = this.processCategories({ checklistForm, categories })
 
-        // --- STEP 2: FORCE CALCULATION BEFORE SAVE (FIX FOR 0 SCORE) ---
-        finalCategoriesData.forEach((cat) => {
+        // --- STEP 1: Process Categories ---
+        finalCategoriesData.forEach((cat, index) => {
+            // 🟢 CATEGORY NAME MAPPING
+            // Agar 'category' nahi hai lekin 'categoryName' aayi hai, toh use map kardo
+            if (!cat.category && cat.categoryName) {
+                cat.category = cat.categoryName;
+            } 
+            // Agar dono nahi aaye hain, toh index ke hisaab se default naam daal do
+            else if (!cat.category && !cat.categoryName) {
+                const standardCategories = [
+                    "Attention", "Memory", "Fine Motor and Gross Motor Skill", 
+                    "Cognitive", "Language & Communication", "Executive Function", 
+                    "Academic Skills", "Social Skill", "Emotional Regulation", 
+                    "Behavior", "Adaptive Skills"
+                ];
+                cat.category = standardCategories[index] || `Unnamed Category ${index + 1}`;
+            }
+
+            // Calculate Score safely
             if (cat.subCategories && cat.subCategories.length > 0) {
                 let catTotal = 0;
                 cat.subCategories.forEach((sub) => {

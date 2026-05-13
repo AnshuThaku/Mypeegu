@@ -18,6 +18,7 @@ import teacherProfilingSlice from './pages/assessment/TeacherProfiling/teacherPr
 import StudentWellBeingSlice from './pages/assessment/studentWellBeing/StudentWellBeingSlice'
 import sendChecklistslice from './pages/initiations/sendCheckList/sendChecklistslice'
 import iEPSlice from './pages/initiations/IEP/iEPSlice'
+import iEP360Reducer from './pages/initiations/IEP/iEP360Slice'
 import gandtTemplateSlice from './pages/gandt/templates/gandtTemplateSlice'
 import gandtAssignmentSlice from './pages/gandt/assignments/gandtAssignmentSlice'
 import gandtCounselorSlice from './pages/initiations/gandt/gandtCounselorSlice'
@@ -46,6 +47,7 @@ const appReducer = combineReducers({
   studentWellBeing: StudentWellBeingSlice,
   sendChecklist: sendChecklistslice,
   StudentIEP: iEPSlice,
+  iep360: iEP360Reducer,
   gandtTemplate: gandtTemplateSlice,
   gandtAssignment: gandtAssignmentSlice,
   gandtCounselor: gandtCounselorSlice,

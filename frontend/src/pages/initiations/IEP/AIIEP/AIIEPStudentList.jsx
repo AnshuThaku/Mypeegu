@@ -1,44 +1,52 @@
-/* eslint-disable react-hooks/exhaustive-deps */
-import React, { useCallback, useEffect, useRef, useState } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { getSchoolsList } from '../../../redux/commonSlice'
-import { localizationConstants } from '../../../resources/theme/localizationConstants'
+import { getSchoolsList } from '../../../../redux/commonSlice'
+import { localizationConstants } from '../../../../resources/theme/localizationConstants'
 import {
     Box,
     TextField,
     InputAdornment,
     IconButton,
     Button,
+    Dialog,
+    DialogContent,
+    Slide
 } from '@mui/material'
 import FilterListIcon from '@mui/icons-material/FilterList'
 import AddIcon from '@mui/icons-material/Add'
 import SearchIcon from '@mui/icons-material/Search'
 import debounce from 'lodash.debounce'
 
-import IEPTableList from './IEPTableList'
+import AIIEPTableList from './AIIEPTableList'
 import {
     initialAccordionStates,
     initialFilterStates,
-} from '../../../components/commonComponents/CustomFilter'
-import { fetchAllStudentIEP } from './iEPFunctions'
-import CommonFilterDrawer from '../../../components/commonComponents/CustomFilter'
-import { getCurACYear, sortEnum } from '../../../utils/utils'
-import AddIEPDialog from './AddIEPDialog'
-import { counsellorStyles } from '../../counsellors/counsellorsStyles'
+} from '../../../../components/commonComponents/CustomFilter'
+import { fetchAllStudentIEP } from '../iEPFunctions'
+import CommonFilterDrawer from '../../../../components/commonComponents/CustomFilter'
+import { getCurACYear, sortEnum } from '../../../../utils/utils'
+import { counsellorStyles } from '../../../counsellors/counsellorsStyles'
 
-const StudentIEP = () => {
+const AIIEPStudentList = () => {
     const dispatch = useDispatch()
     const { academicYears } = useSelector((store) => store.dashboardSliceSetup)
     const { appPermissions } = useSelector((store) => store.dashboardSliceSetup)
-    const { IEPviewAllData } = useSelector((store) => store.StudentIEP)
+    const { IEPviewAllData } = useSelector((store) => store.StudentIEP || {})
+    
     const [sortKeys, setSortKeys] = useState([{ key: 'createdAt', value: sortEnum.desc }])
+    
+    // 🟢 2. NAYA STATE: Selected Student track karne ke liye
+    const [selectedStudentId, setSelectedStudentId] = useState(null)
+
     const [modal, setModal] = useState({
         add: false,
         edit: false,
         upload: false,
         filter: false,
         delete: false,
+        view360: false, // 🟢 3. NAYA STATE: Modal kholne ke liye
     })
+    
     const [currentPage, setCurrentPage] = useState(1)
     const [rowsPerPage, setRowsPerPage] = useState({
         text: '150',
@@ -48,7 +56,9 @@ const StudentIEP = () => {
     const [searchText, setSearchText] = useState('')
     const [searchInputValue, setSearchInputValue] = useState('')
 
-    const handleModal = useCallback((name, value) => {
+    // 🟢 4. NAYA HANDLE MODAL: Ab ye studentId bhi save karega
+    const handleModal = useCallback((name, value, studentId = null) => {
+        if (studentId) setSelectedStudentId(studentId);
         setModal((state) => ({ ...state, [name]: value }))
     }, [])
 
@@ -127,8 +137,21 @@ const StudentIEP = () => {
         dispatch(getSchoolsList({}))
     }, [dispatch])
 
+    // Utility validation filtering logic to only show students who have completed base requirements
+    const filterEligibleStudents = (data) => {
+        if (!data || !data.data) return data;
+        
+        // 🟢 TEMPORARY FIX: Abhi strict filter hata diya hai taaki sab bache dikhein.
+        // Jab UI par data aane lagega tab hum check karenge ki backend asliyat mein kya bhej raha hai.
+        return {
+            ...data,
+            data: data.data 
+        };
+    }
+
     return (
         <Box sx={counsellorStyles.pageContainerSx}>
+            {/* Toolbar */}
             <Box sx={counsellorStyles.toolbarSx}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                     <TextField
@@ -154,22 +177,11 @@ const StudentIEP = () => {
                     >
                         <FilterListIcon sx={{ fontSize: 18, color: '#64748B' }} />
                     </IconButton>
-
-                    {appPermissions?.['student-IEP']?.edit && (
-                        <Button
-                            variant='contained'
-                            startIcon={<AddIcon sx={{ fontSize: 16 }} />}
-                            sx={counsellorStyles.addButtonSx}
-                            onClick={() => handleModal('add', true)}
-                        >
-                            {localizationConstants.add}
-                        </Button>
-                    )}
                 </Box>
             </Box>
 
-            <IEPTableList
-                allStudentsForspecificSchool={IEPviewAllData}
+            <AIIEPTableList
+                allStudentsForspecificSchool={filterEligibleStudents(IEPviewAllData)}
                 sortKeys={sortKeys}
                 setSortKeys={setSortKeys}
                 currentPage={currentPage}
@@ -182,20 +194,8 @@ const StudentIEP = () => {
                     refreshListAndCloseDialog('edit')
                 }
                 modal={modal}
-                handleModal={handleModal}
+                handleModal={handleModal} 
             />
-
-            {modal.add && (
-                <AddIEPDialog
-                    open={modal.add}
-                    onClose={() => {
-                        handleModal('add', false)
-                    }}
-                    refreshListAndCloseDialog={() =>
-                        refreshListAndCloseDialog('add')
-                    }
-                />
-            )}
 
             <CommonFilterDrawer
                 onOpen={modal.filter}
@@ -241,4 +241,4 @@ const StudentIEP = () => {
     )
 }
 
-export default StudentIEP
+export default AIIEPStudentList

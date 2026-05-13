@@ -185,7 +185,7 @@ const Baseline = () => {
         return <UnfoldMoreIcon sx={{ fontSize: 14, color: '#94A3B8' }} />
     }
 
-    const renderScoreCell = (row, field, category) => {
+  const renderScoreCell = (row, field, category) => {
         const fieldData = row?.[field]
         return (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -201,7 +201,7 @@ const Baseline = () => {
                     }}
                 >
                     <Typography sx={{ fontSize: '11px', color: 'white', fontWeight: 600 }}>
-                        {fieldData?.total}
+                        {fieldData?.total || 0}
                     </Typography>
                 </Box>
                 <IconButton
@@ -215,9 +215,9 @@ const Baseline = () => {
                                 category,
                                 row?._id,
                                 row?.academicYear,
-                                row?.systemAlerts,        // 🟢 LOGIC UPDATE
-                                row?.overallTier,         // 🟢 LOGIC UPDATE
-                                row?.influenceSeverity    // 🟢 LOGIC UPDATE
+                                row?.systemAlerts,
+                                row?.overallTier,
+                                row?.influenceSeverity
                             )
                         }
                     }}
@@ -228,7 +228,6 @@ const Baseline = () => {
             </Box>
         )
     }
-
    const renderCellContent = (column, row) => {
         const fieldName = column.name
 
