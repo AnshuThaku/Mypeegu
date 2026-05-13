@@ -1035,23 +1035,30 @@ const SELPdfViewDialog = ({ open, onClose }) => {
     setSelectedPdfUrl(''); 
 
     try {
-      // API call to backend for Presigned URL
-      // Note: Assuming `file.path` is the S3 key (e.g. "sel-modules/doc.pdf")
-      const response = await myPeeguAxios.get(`/counselor/v1/sel/view-pdf?fileName=${encodeURIComponent(file.path)}`);
+  // Remove extra leading slashes
+  const cleanPath = file.path.replace(/^\/+/, '');
 
-      if (response?.data?.success && response.data.data?.url) {
-        setSelectedPdfUrl(response.data.data.url); // Secure Streamable URL
-      } else {
-        // Agar backend error de, toh Fallback (direct URL) use karein
-        setSelectedPdfUrl(`${baseURL}${file.path}`);
-      }
-    } catch (error) {
-      console.error("Failed to fetch secure PDF URL:", error);
-      // Fallback in case of network error
-      setSelectedPdfUrl(`${baseURL}${file.path}`);
-    } finally {
-      setIsPdfFetching(false);
-    }
+  // API call to backend for Presigned URL
+  const response = await myPeeguAxios.get(
+    `/counselor/v1/sel/view-pdf?fileName=${encodeURIComponent(cleanPath)}`
+  );
+
+  if (response?.data?.success && response.data.data?.url) {
+    // Secure Streamable URL
+    setSelectedPdfUrl(response.data.data.url);
+  } else {
+    // Fallback Direct S3 URL
+    setSelectedPdfUrl(`${baseURL}/${cleanPath}`);
+  }
+} catch (error) {
+  console.error("Failed to fetch secure PDF URL:", error);
+
+  // Fallback in case of network error
+  const cleanPath = file.path.replace(/^\/+/, '');
+  setSelectedPdfUrl(`${baseURL}/${cleanPath}`);
+} finally {
+  setIsPdfFetching(false);
+}
   }
 
   // 🔥 IMPORTANT: rangeChunkSize allows pdf.js to fetch the 100MB file in 64kb chunks!

@@ -15,7 +15,7 @@ router.get('/view-pdf', async (req, res) => {
     }
 
     // 🟢 S3 Bucket ke andar ka folder path (Agar root par hai toh khali string "" chhod dein)
-    const s3FolderPath = "sel-modules/"; 
+    const s3FolderPath = ""; 
 
     // Naya function call karein URL generate karne ke liye
     const pdfUrl = await generateViewPreSignedUrl(s3FolderPath, fileName);
