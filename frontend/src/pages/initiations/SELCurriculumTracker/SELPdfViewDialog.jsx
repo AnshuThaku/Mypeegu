@@ -782,11 +782,6 @@ import { apiEndPoints, apiMethods } from '../../../utils/apiConstants'
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`
 
-// 🚨 TEST MODE SETTING 🚨
-// Testing ke baad isko 'false' kar dena!
-const TEST_MODE = true; 
-const STATIC_HEAVY_PDF = '/heavy-test.pdf'; // Is file ko apne React ke 'public' folder me rakhein
-
 const MONTHS_LIST = [
   'January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December'
@@ -1030,8 +1025,8 @@ const SELPdfViewDialog = ({ open, onClose }) => {
     setFileViewMode(true); setActiveTool(presentationTools.HAND); 
     setActivePage(1); 
     
-    // 🔥 TEST MODE INJECTION
-    const fileUrl = TEST_MODE ? STATIC_HEAVY_PDF : `${baseURL}${file.path}`;
+    // 🟢 DYNAMIC FILE URL (S3 bucket se original PDF aayega)
+    const fileUrl = `${baseURL}${file.path}`;
     setSelectedPdfUrl(fileUrl);
   }
 
