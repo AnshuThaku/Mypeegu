@@ -1025,7 +1025,7 @@ const SELPdfViewDialog = ({ open, onClose }) => {
     setFileViewMode(true); setActiveTool(presentationTools.HAND); 
     setActivePage(1); 
     
-    // 🧪 TESTING MODE: Forced Static URL applied here
+    // 🧪 TESTING MODE: Forced Static URL
     if (file.path === 'STATIC_TEST') {
         setIsPdfFetching(false);
         setSelectedPdfUrl('https://mypeegu-prodd.s3.ap-south-1.amazonaws.com/sel-modules/India/Year+1/may/G_1-2/SEL_Module_Y1_M2_G1-2.pdf');
@@ -1035,24 +1035,40 @@ const SELPdfViewDialog = ({ open, onClose }) => {
     setIsPdfFetching(true);
     setSelectedPdfUrl(''); 
 
-    // 🟢 FIX HERE: URL path ko sanitize karein (Multiple slashes ko single slash banayein)
-    // Agar path '//sel' se shuru ho rha hai, toh use '/sel' bana dega
+    // Helper function jo kisi bhi final URL mein se domain ke baad wale // ko saaf karega
+    const sanitizeFinalUrl = (urlStr) => {
+      if (!urlStr) return '';
+      try {
+        // URL ko parts mein todte hain (protocol, domain, path, query params)
+        const urlObj = new URL(urlStr);
+        // Pathname mein agar multiple slashes hain toh unhe single slash se replace karein
+        urlObj.pathname = urlObj.pathname.replace(/\/+/g, '/');
+        return urlObj.toString();
+      } catch (e) {
+        // Fallback agar normal regex lagana pade
+        return urlStr.replace(/([^:]\/)\/+/g, "$1");
+      }
+    };
+
     let cleanPath = file.path ? file.path.replace(/\/+/g, '/') : '';
     if (cleanPath && !cleanPath.startsWith('/')) {
       cleanPath = '/' + cleanPath;
     }
+    const encodedPath = encodeURI(cleanPath);
 
     try {
-      // API call mein bhi encoded cleanPath bhejenge
       const response = await myPeeguAxios.get(`/counselor/v1/sel/view-pdf?fileName=${encodeURIComponent(cleanPath)}`);
       if (response?.data?.success && response.data.data?.url) {
-        setSelectedPdfUrl(response.data.data.url);
+        // 🟢 FIX: API se aayi hui S3 Signed URL ko bhi saaf kar do
+        const clearSignedUrl = sanitizeFinalUrl(response.data.data.url);
+        setSelectedPdfUrl(clearSignedUrl);
       } else {
-        setSelectedPdfUrl(`${baseURL}${cleanPath}`);
+        // Fallback path
+        setSelectedPdfUrl(`${baseURL}${encodedPath}`);
       }
     } catch (error) {
       console.error("Failed to fetch secure PDF URL:", error);
-      setSelectedPdfUrl(`${baseURL}${cleanPath}`); // Fallback with clean path
+      setSelectedPdfUrl(`${baseURL}${encodedPath}`); // Fallback
     } finally {
       setIsPdfFetching(false);
     }
