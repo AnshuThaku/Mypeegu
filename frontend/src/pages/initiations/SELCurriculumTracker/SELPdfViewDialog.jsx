@@ -929,7 +929,7 @@ const SELPdfViewDialog = ({ open, onClose }) => {
   const [selectedCategory, setSelectedCategory] = useState({})
   const [numPages, setNumPages] = useState(null)
   const [isPdfLoaded, setIsPdfLoaded] = useState(false)
-  const [openCollapsible, setOpenCollapsible] = useState({ 'test-order': true }) // Default open test category
+  const [openCollapsible, setOpenCollapsible] = useState({}) 
   
   const [isPdfFetching, setIsPdfFetching] = useState(false)
   const [zoom, setZoom] = useState(1.0)
@@ -1019,33 +1019,23 @@ const SELPdfViewDialog = ({ open, onClose }) => {
     }
   }, [currentMonthData?.categories])
 
- const handleFileClick = async (file, category) => {
+  const handleFileClick = async (file, category) => {
     setIsPdfLoaded(false); setPdfOrientation(null); setZoom(1.0);
     setSelectedCategory((s) => ({ ...s, file, category }));
     setFileViewMode(true); setActiveTool(presentationTools.HAND); 
     setActivePage(1); 
     
-    // 🧪 TESTING MODE: Forced Static URL
-    if (file.path === 'STATIC_TEST') {
-        setIsPdfFetching(false);
-        setSelectedPdfUrl('https://mypeegu-prodd.s3.ap-south-1.amazonaws.com/sel-modules/India/Year+1/may/G_1-2/SEL_Module_Y1_M2_G1-2.pdf');
-        return;
-    }
-
     setIsPdfFetching(true);
     setSelectedPdfUrl(''); 
 
-    // Helper function jo kisi bhi final URL mein se domain ke baad wale // ko saaf karega
+    // URL path cleaner
     const sanitizeFinalUrl = (urlStr) => {
       if (!urlStr) return '';
       try {
-        // URL ko parts mein todte hain (protocol, domain, path, query params)
         const urlObj = new URL(urlStr);
-        // Pathname mein agar multiple slashes hain toh unhe single slash se replace karein
         urlObj.pathname = urlObj.pathname.replace(/\/+/g, '/');
         return urlObj.toString();
       } catch (e) {
-        // Fallback agar normal regex lagana pade
         return urlStr.replace(/([^:]\/)\/+/g, "$1");
       }
     };
@@ -1058,16 +1048,21 @@ const SELPdfViewDialog = ({ open, onClose }) => {
 
     try {
       const response = await myPeeguAxios.get(`/counselor/v1/sel/view-pdf?fileName=${encodeURIComponent(cleanPath)}`);
+      let finalUrl = `${baseURL}${encodedPath}`;
+
       if (response?.data?.success && response.data.data?.url) {
-        // 🟢 FIX: API se aayi hui S3 Signed URL ko bhi saaf kar do
-        const clearSignedUrl = sanitizeFinalUrl(response.data.data.url);
-        setSelectedPdfUrl(clearSignedUrl);
-      } else {
-        // Fallback path
-        setSelectedPdfUrl(`${baseURL}${encodedPath}`);
+        finalUrl = sanitizeFinalUrl(response.data.data.url);
       }
+
+      // 🔥 Blob fetch for CORS bypass
+      const pdfBlobResponse = await fetch(finalUrl);
+      const pdfBlob = await pdfBlobResponse.blob();
+      const blobUrl = URL.createObjectURL(pdfBlob);
+      
+      setSelectedPdfUrl(blobUrl); 
+
     } catch (error) {
-      console.error("Failed to fetch secure PDF URL:", error);
+      console.error("Failed to fetch or process secure PDF URL:", error);
       setSelectedPdfUrl(`${baseURL}${encodedPath}`); // Fallback
     } finally {
       setIsPdfFetching(false);
@@ -1084,6 +1079,10 @@ const SELPdfViewDialog = ({ open, onClose }) => {
   }, [selectedPdfUrl]);
 
   const handleBackToList = () => {
+    // 🟢 MEMORY LEAK FIX
+    if (selectedPdfUrl && selectedPdfUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(selectedPdfUrl);
+    }
     setFileViewMode(false); setSelectedPdfUrl(''); setSelectedCategory({})
     setNumPages(null); setIsPdfLoaded(false); setZoom(1.0); setPdfOrientation(null)
     setActiveTool(presentationTools.NONE); setActivePage(1); pageRefs.current = []
@@ -1113,7 +1112,7 @@ const SELPdfViewDialog = ({ open, onClose }) => {
   const clearAllDrawings = () => setClearTrigger((p) => p + 1)
   const handleUndo = () => setUndoTrigger((p) => p + 1)
 
-  const isPDF = typeof selectedPdfUrl === 'string' && (selectedPdfUrl.toLowerCase().endsWith('.pdf') || selectedPdfUrl.toLowerCase().includes('application/pdf') || selectedPdfUrl.includes('X-Amz-Signature'))
+  const isPDF = typeof selectedPdfUrl === 'string' && (selectedPdfUrl.toLowerCase().endsWith('.pdf') || selectedPdfUrl.toLowerCase().includes('application/pdf') || selectedPdfUrl.includes('X-Amz-Signature') || selectedPdfUrl.startsWith('blob:'))
 
   useEffect(() => {
     if (fileViewMode && pdfOrientation) { setZoom(getDefaultZoom(pdfOrientation)) }
@@ -1145,13 +1144,11 @@ const SELPdfViewDialog = ({ open, onClose }) => {
     return () => window.removeEventListener('keydown', fn)
   }, [fileViewMode, isPDF])
 
-  // 🟢 FIX 2: Accurate Intersection Observer (No Jumping)
   useEffect(() => {
     if (!fileViewMode || !numPages || !scrollContainerRef.current) return
     
     const handler = (entries) => {
       entries.forEach((entry) => {
-        // Agar page thoda bhi dikh raha hai (30%), toh active ho jayega
         if (entry.isIntersecting) {
           const i = pageRefs.current.findIndex((r) => r === entry.target)
           if (i !== -1) setActivePage(i + 1)
@@ -1161,7 +1158,7 @@ const SELPdfViewDialog = ({ open, onClose }) => {
     
     const obs = new IntersectionObserver(handler, {
       root: scrollContainerRef.current, 
-      threshold: 0.3, // No heavy margins, exact precision
+      threshold: 0.3,
     })
     
     pageRefs.current.forEach((r) => r && obs.observe(r))
@@ -1263,7 +1260,6 @@ const SELPdfViewDialog = ({ open, onClose }) => {
               >
                 {Array.from(new Array(numPages || 0), (_, i) => {
                   const pageNumber = i + 1;
-                  // 🟢 FIX 3: Perfectly Balanced Memory Buffer (11 pages max)
                   const isVisible = Math.abs(activePage - pageNumber) <= 5;
                   
                   return (
@@ -1351,16 +1347,6 @@ const SELPdfViewDialog = ({ open, onClose }) => {
             '&::-webkit-scrollbar': { width: '4px' }, '&::-webkit-scrollbar-track': { background: 'transparent' },
             '&::-webkit-scrollbar-thumb': { background: THEME.blueBorder, borderRadius: '10px' }, '&::-webkit-scrollbar-thumb:hover': { background: THEME.blueMid },
           }}>
-            {/* 🧪 TESTING CARD */}
-            <CategoryCard 
-              title="Testing & Debugging" emoji="🧪" 
-              files={[{ _id: 'test-file', fileName: 'G_1-2 | SEL_Module_Y1_M2_G1-2.pdf' }]} 
-              category={{ order: 'test-order', categoryName: 'Testing' }} 
-              onFileClick={() => handleFileClick({ path: 'STATIC_TEST', fileName: 'SEL_Module_Y1_M2_G1-2.pdf' }, { categoryName: 'Testing' })} 
-              isOpen={openCollapsible['test-order']} 
-              onToggle={() => toggleCollapsible('test-order')} badgeColor="#e91e63" 
-            />
-
             {currentMonthData?.categories?.map((category, idx) => (
               <CategoryCard key={category.order} title={category.categoryName} files={category.files} category={category} onFileClick={handleFileClick} isOpen={openCollapsible[category.order]} onToggle={() => toggleCollapsible(category.order)} badgeColor={BADGE_COLORS[idx % BADGE_COLORS.length]} />
             ))}
