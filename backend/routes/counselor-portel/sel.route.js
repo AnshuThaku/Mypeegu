@@ -1,20 +1,22 @@
 const express = require('express');
 const router = express.Router();
 
-// 🟢 Apne AWS helper file ka path yahan daalein (Jahan aapne generateViewPreSignedUrl banaya hai)
+// 🟢 Apne AWS helper file ka path yahan daalein
 const { generateViewPreSignedUrl } = require('../../routes/AWSS3Manager'); 
 
 // 🟢 GET API TO FETCH PDF URL
 router.get('/view-pdf', async (req, res) => {
   try {
-    // Frontend se file ka naam aayega (e.g., ?fileName=module_1_grade_8.pdf)
-    const { fileName } = req.query; 
+    let { fileName } = req.query; // 'let' use kiya taaki modify kar sakein
 
     if (!fileName) {
       return res.status(400).json({ success: false, message: 'File name is required' });
     }
 
-    // 🟢 S3 Bucket ke andar ka folder path (Agar root par hai toh khali string "" chhod dein)
+    // 🔥 MAIN FIX: Agar file ke naam mein shuru mein slash (/) hai, toh use hata do
+    // Ye code ensure karega ki double slash (//) kabhi na bane
+    fileName = fileName.replace(/^\/+/, ''); 
+
     const s3FolderPath = ""; 
 
     // Naya function call karein URL generate karne ke liye
