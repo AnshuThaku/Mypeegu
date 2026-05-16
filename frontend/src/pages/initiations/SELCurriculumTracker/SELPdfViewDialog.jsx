@@ -1028,42 +1028,32 @@ const SELPdfViewDialog = ({ open, onClose }) => {
     setIsPdfFetching(true);
     setSelectedPdfUrl(''); 
 
-    // URL path cleaner
-    const sanitizeFinalUrl = (urlStr) => {
-      if (!urlStr) return '';
-      try {
-        const urlObj = new URL(urlStr);
-        urlObj.pathname = urlObj.pathname.replace(/\/+/g, '/');
-        return urlObj.toString();
-      } catch (e) {
-        return urlStr.replace(/([^:]\/)\/+/g, "$1");
-      }
-    };
-
+    // 1. Path mein se // hata kar clean karein
     let cleanPath = file.path ? file.path.replace(/\/+/g, '/') : '';
     if (cleanPath && !cleanPath.startsWith('/')) {
       cleanPath = '/' + cleanPath;
     }
+    
+    // 2. Spaces ko %20 mein convert karein
     const encodedPath = encodeURI(cleanPath);
 
+    // 3. EXACT wahi URL banayein jo aapne abhi test ki hai
+    const perfectUrl = `${baseURL}${encodedPath}`;
+
     try {
-      const response = await myPeeguAxios.get(`/counselor/v1/sel/view-pdf?fileName=${encodeURIComponent(cleanPath)}`);
-      let finalUrl = `${baseURL}${encodedPath}`;
-
-      if (response?.data?.success && response.data.data?.url) {
-        finalUrl = sanitizeFinalUrl(response.data.data.url);
-      }
-
-      // 🔥 Blob fetch for CORS bypass
-      const pdfBlobResponse = await fetch(finalUrl);
-      const pdfBlob = await pdfBlobResponse.blob();
-      const blobUrl = URL.createObjectURL(pdfBlob);
+      // 🔥 Seedha perfect URL se Blob fetch karenge taaki CORS error bhi na aaye
+      const response = await fetch(perfectUrl);
       
-      setSelectedPdfUrl(blobUrl); 
-
+      if (response.ok) {
+        const pdfBlob = await response.blob();
+        setSelectedPdfUrl(URL.createObjectURL(pdfBlob));
+      } else {
+        // Agar fetch kaam na kare toh seedha URL react-pdf ko de do
+        setSelectedPdfUrl(perfectUrl);
+      }
     } catch (error) {
-      console.error("Failed to fetch or process secure PDF URL:", error);
-      setSelectedPdfUrl(`${baseURL}${encodedPath}`); // Fallback
+      console.error("Direct fetch failed, falling back to url:", error);
+      setSelectedPdfUrl(perfectUrl);
     } finally {
       setIsPdfFetching(false);
     }
