@@ -974,7 +974,7 @@ router.get(
 		const academicYears = await AcademicYears.find(
 			{ isDeleted: false },
 			{ _id: 1, academicYear: 1, order: 1 },
-		).sort({ academicYear: -1 })
+		).sort({ order: 1 })
 		const states = await States.find(
 			{ isDeleted: false },
 			{ _id: 1, name: 1, country: 1 },

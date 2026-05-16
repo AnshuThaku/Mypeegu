@@ -187,138 +187,150 @@ class IEPService extends IEPHelperService {
 	}
 
 	async addIEPRecord(req, res) {
-		const body = req.body
-		const { error, message, school, SAY, academicYear } =
-			await this.validateUserSchoolAndAY(req)
-		if (error) {
-			return res.status(400).json(new FailureResponse(message))
-		}
+        const body = req.body
+        const { error, message, school, SAY, academicYear } =
+            await this.validateUserSchoolAndAY(req)
+        if (error) {
+            return res.status(400).json(new FailureResponse(message))
+        }
 
-		const {
-			user_id,
-			checkList,
-			baseLine,
-			Evolution,
-			AccommodationFromBoard,
-			AccommodationInternal,
-			transitionPlanning,
-			PlacementWithSEND,
-		} = body.studentData
+        const {
+            user_id,
+            checkList,
+            baseLine,
+            Evolution,
+            AccommodationFromBoard,
+            AccommodationInternal,
+            transitionPlanning,
+            PlacementWithSEND,
+        } = body.studentData
 
-		if (!user_id) {
-			return res
-				.status(400)
-				.json(new FailureResponse(globalConstants.messages.missingParameters))
-		}
+        if (!user_id) {
+            return res
+                .status(400)
+                .json(new FailureResponse(globalConstants.messages.missingParameters))
+        }
 
-		const student = await Students.findOne({
-			status: globalConstants.schoolStatus.Active,
-			user_id: { $in: user_id },
-			school: school._id,
-			graduated: false,
-			exited: false,
-		}).lean()
+        const student = await Students.findOne({
+            status: globalConstants.schoolStatus.Active,
+            user_id: { $in: user_id },
+            school: school._id,
+            graduated: false,
+            exited: false,
+        }).lean()
 
-		let studentErrMsg = null
-		if (!student) {
-			studentErrMsg = globalConstants.messages.fieldNotFound.replaceField(ALL_FIELDS.STUDENT)
-		} else if (student.graduated) {
-			studentErrMsg = globalConstants.messages.alreadyGraduated
-		} else if (student.exited) {
-			studentErrMsg = globalConstants.messages.alreadyExited
-		}
-		if (studentErrMsg) {
-			return res.status(404).json(new FailureResponse(studentErrMsg))
-		}
+        let studentErrMsg = null
+        if (!student) {
+            studentErrMsg = globalConstants.messages.fieldNotFound.replaceField(ALL_FIELDS.STUDENT)
+        } else if (student.graduated) {
+            studentErrMsg = globalConstants.messages.alreadyGraduated
+        } else if (student.exited) {
+            studentErrMsg = globalConstants.messages.alreadyExited
+        }
+        if (studentErrMsg) {
+            return res.status(404).json(new FailureResponse(studentErrMsg))
+        }
 
-		const validateStudentInAY = this.validateStudentAndAcademicYearInJourney(
-			student,
-			academicYear._id,
-		)
-		if (!validateStudentInAY) {
-			return res
-				.status(404)
-				.json(
-					new FailureResponse(
-						globalConstants.messages.fieldNotFoundInSelectedAY.replaceField(
-							ALL_FIELDS.STUDENT,
-						),
-					),
-				)
-		}
+        const validateStudentInAY = this.validateStudentAndAcademicYearInJourney(
+            student,
+            academicYear._id,
+        )
+        if (!validateStudentInAY) {
+            return res
+                .status(404)
+                .json(
+                    new FailureResponse(
+                        globalConstants.messages.fieldNotFoundInSelectedAY.replaceField(
+                            ALL_FIELDS.STUDENT,
+                        ),
+                    ),
+                )
+        }
 
-		const studentCheckListCategory = await StudentCheckList.findOne({
-			studentId: student._id,
-			classRoomId: validateStudentInAY.classRoomId,
-			academicYear: body.academicYear,
-		}).select('checklistForm')
-		if (!studentCheckListCategory) {
-			return res.status(400).json(new FailureResponse('Check List data not found'))
-		}
+        const studentCheckListCategory = await StudentCheckList.findOne({
+            studentId: student._id,
+            classRoomId: validateStudentInAY.classRoomId,
+            academicYear: body.academicYear,
+        }).select('checklistForm')
+        if (!studentCheckListCategory) {
+            return res.status(400).json(new FailureResponse('Check List data not found'))
+        }
 
-		const validationError = await this.validateIepRequest(
-			req.body,
-			studentCheckListCategory.checklistForm,
-			student,
-			academicYear
-		)
-		if (validationError) {
-			return res.status(400).json(validationError)
-		}
+        // 🟢 NAYA LOGIC: Check if it's AI Mode (2026 or later)
+        const ayString = academicYear.academicYear || ""; // e.g. "2026-2027"
+        const startYearMatch = ayString.match(/(\d{4})/);
+        const startYear = startYearMatch ? parseInt(startYearMatch[1], 10) : 0;
+        const isAIEPMode = startYear >= 2026;
 
-		const isEducationPlanExist = await EducationPlanner.findOne({
-			studentId: student._id,
-			classRoomId: student.classRoomId,
-			exited: { $ne: true },
-			graduated: { $ne: true },
-		}).select('school classRoomId')
+        // 🟢 SMART VALIDATION: Sirf purane saalo ke liye strict validation karo
+        if (!isAIEPMode) {
+            const validationError = await this.validateIepRequest(
+                req.body,
+                studentCheckListCategory.checklistForm,
+                student,
+                academicYear
+            )
+            if (validationError) {
+                return res.status(400).json(validationError)
+            }
+        }
 
-		if (isEducationPlanExist) {
-			return res
-				.status(400)
-				.json(
-					new FailureResponse(
-						globalConstants.messages.educationPlannerRecordAlreadyExist,
-					),
-				)
-		}
+        const isEducationPlanExist = await EducationPlanner.findOne({
+            studentId: student._id,
+            classRoomId: student.classRoomId,
+            exited: { $ne: true },
+            graduated: { $ne: true },
+        }).select('school classRoomId')
 
-		const queryParam = req.query.addPhoto === 'true'
-		if (queryParam === true) {
-			const pic = utils.fetchUrlSafeString(Evolution.reportLink)
-			const fileUrl = `${globalConstants.studentIEP_path}${pic}`
-			const existFile = await isFileExistInS3(fileUrl)
-			if (!existFile) {
-				return res
-					.status(400)
-					.json(new FailureResponse(globalConstants.messages.invalidImage))
-			} else {
-				Evolution.reportLink = `${miscellaneous.resourceBaseurl}${globalConstants.studentIEP_path}${pic}`
-			}
-		}
+        if (isEducationPlanExist) {
+            return res
+                .status(400)
+                .json(
+                    new FailureResponse(
+                        globalConstants.messages.educationPlannerRecordAlreadyExist,
+                    ),
+                )
+        }
 
-		const newEducationPlan = await EducationPlanner.create({
-			studentId: student._id,
-			studentName: student.studentName,
-			classRoomId: validateStudentInAY.classRoomId,
-			school: school._id,
-			user_id: student.user_id,
-			baseLine,
-			checkList,
-			Evolution,
-			AccommodationFromBoard,
-			AccommodationInternal,
-			transitionPlanning,
-			PlacementWithSEND,
-			SAY: SAY._id,
-			academicYear: academicYear._id,
-		})
-		if (newEducationPlan) {
-			return res.json(
-				new SuccessResponse(globalConstants.messages.studentEducationPlannerRecordCreated),
-			)
-		}
-	}
+        // 🟢 IMAGE UPLOAD BYPASS: Agar AI Mode hai toh blank evolution image ka issue na aaye
+        const queryParam = req.query.addPhoto === 'true'
+        if (queryParam === true && Evolution?.reportLink) {
+            const pic = utils.fetchUrlSafeString(Evolution.reportLink)
+            const fileUrl = `${globalConstants.studentIEP_path}${pic}`
+            const existFile = await isFileExistInS3(fileUrl)
+            if (!existFile) {
+                return res
+                    .status(400)
+                    .json(new FailureResponse(globalConstants.messages.invalidImage))
+            } else {
+                Evolution.reportLink = `${miscellaneous.resourceBaseurl}${globalConstants.studentIEP_path}${pic}`
+            }
+        }
+
+        // Create the record
+        const newEducationPlan = await EducationPlanner.create({
+            studentId: student._id,
+            studentName: student.studentName,
+            classRoomId: validateStudentInAY.classRoomId,
+            school: school._id,
+            user_id: student.user_id,
+            // 🟢 Agar AI mode mein ye sab frontend se nahi aaye toh inko khaali (empty) default kardo
+            baseLine: baseLine || [],
+            checkList: checkList || [],
+            Evolution: Evolution || {},
+            AccommodationFromBoard: AccommodationFromBoard || "",
+            AccommodationInternal: AccommodationInternal || "",
+            transitionPlanning: transitionPlanning || "",
+            PlacementWithSEND: PlacementWithSEND || "",
+            SAY: SAY._id,
+            academicYear: academicYear._id,
+        })
+        if (newEducationPlan) {
+            return res.json(
+                new SuccessResponse(globalConstants.messages.studentEducationPlannerRecordCreated),
+            )
+        }
+    }
 
 	async updateIEPRecord(req, res) {
 		const body = req.body

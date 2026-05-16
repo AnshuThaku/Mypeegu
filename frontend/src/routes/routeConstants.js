@@ -71,6 +71,7 @@ export const routePaths = {
 	studentChecklistAnalytics: '/dashboard/initiations/sendChecklist/analytics',
 	initiationsIEP: '/dashboard/initiations/IEP',
 	initiationsAddIEP: '/dashboard/initiations/IEP/addStudentIEPDetails',
+	initiationsStudentIEP: '/dashboard/initiations/student-iep/:studentId',
 	initiationsGandT: '/dashboard/initiations/gandt',
 	gandtTemplates: '/dashboard/initiations/gandt/templates',
 	gandtTemplateAdd: '/dashboard/initiations/gandt/templates/add',

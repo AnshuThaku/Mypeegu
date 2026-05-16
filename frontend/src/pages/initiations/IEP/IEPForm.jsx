@@ -26,14 +26,14 @@ const IEPForm = ({
 }) => {
 	const flexStyles = useCommonStyles()
 	const [modal, setModal] = useState({
-		0: false,
-		1: false,
-		2: false,
-		3: false,
-		4: false,
-		5: false,
-		6: false,
-	})
+    0: true,  // 🟢 Baseline hamesha khula rahega
+    1: true,  // 🟢 Checklist hamesha khula rahega
+    2: false,
+    3: false,
+    4: false,
+    5: false,
+    6: false,
+})
 	const handleModal = useCallback((name, value) => {
 		const obj = {}
 		obj[name] = value
@@ -41,43 +41,62 @@ const IEPForm = ({
 	}, [])
 
 	const [variants, setVariants] = useState({})
-	useEffect(() => {
-		const obj = {} // Ensure obj is defined
 
+	// Effect 1: Only update variants when baseline changes
+	useEffect(() => {
+		const obj = {}
 		studentBaselineReport?.additionalNeeds?.forEach((data) => {
 			obj[data.categoryName?.trim()] = data?.Criticality
 		})
 		setVariants(obj)
-		if (
-			studentBaselineReport?.checklistForm?.length > 0 &&
-			addIEPData?.checkList?.length === 0
-		) {
-			const listData = checklistHeaders(
-				studentBaselineReport?.checklistForm,
-			)?.map((d) => ({
-				category: d?.trim(),
-				shortTermGoal: [],
-				longTermGoal: [],
-			}))
-			setAddIEPData({ ...addIEPData, checkList: listData })
-		}
-	}, [studentBaselineReport])
-
+	}, [studentBaselineReport?.additionalNeeds])
+// ✅ Effect 2: Initialize checklist only when baseline changes (Loop-Free Version)
+    useEffect(() => {
+        if (
+            studentBaselineReport?.checklistForm?.length > 0 &&
+            (!addIEPData?.checkList || addIEPData?.checkList?.length === 0)
+        ) {
+            console.log("Setting Checklist Data...");
+            const listData = checklistHeaders(
+                studentBaselineReport?.checklistForm,
+            )?.map((d) => ({
+                category: d?.trim(),
+                shortTermGoal: [],
+                longTermGoal: [],
+            }))
+            // Use functional setState to avoid depending on current addIEPData
+            setAddIEPData((prevData) => ({ ...prevData, checkList: listData }))
+        }
+        // 🟢 BOMB DEFUSED: Yahan se 'addIEPData?.checkList?.length' hata diya hai!
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [studentBaselineReport?.checklistForm])
+	// Effect 3: Validate form state - with ALL dependencies
+	// 🟢 LEGACY RECORDS BYPASS: For legacy IEP records, keep button ALWAYS ENABLED
 	useEffect(() => {
-		const isAnyEmpty = ValidationCheckforAddIEP(
-			addIEPData,
-			isBaselineExist,
-			variants,
-		)
-		setIsBtnDisabled(!isAnyEmpty)
-	}, [addIEPData])
+		// Check if this is a legacy record (if Evolution data exists, it's legacy)
+		const isLegacyRecord = !!addIEPData?.Evolution && 
+			Object.keys(addIEPData.Evolution).length > 0
+		
+		if (isLegacyRecord) {
+			// Legacy records: FORCE button enabled (no validation)
+			setIsBtnDisabled(false)
+		} else {
+			// New records: Run validation
+			const isAnyEmpty = ValidationCheckforAddIEP(
+				addIEPData,
+				isBaselineExist,
+				variants,
+			)
+			setIsBtnDisabled(!isAnyEmpty)
+		}
+	}, [addIEPData, isBaselineExist, variants, setIsBtnDisabled])
 
 	return (
 		<div>
 			<Box className={flexStyles.flexColumn} gap={'20px'}>
 				{IEPContentsList.map((category, index) => {
 					return (
-						<Box sx={{ mt: '20px' }}>
+					<Box key={index} sx={{ mt: '20px' }}>
 							<CustomCollapsibleComponent
 								open={modal[index]}
 								title={category}
@@ -94,13 +113,13 @@ const IEPForm = ({
 										}
 										comments={addIEPData?.baselineComments}
 										setComments={(title, data) =>
-											setAddIEPData({
-												...addIEPData,
+											setAddIEPData((prevData) => ({
+												...prevData,
 												baselineComments: {
-													...addIEPData.baselineComments,
+													...prevData.baselineComments,
 													[title]: data,
 												},
-											})
+											}))
 										}
 										readOnly={readOnly}
 										isBaselineExist={isBaselineExist}
@@ -110,10 +129,10 @@ const IEPForm = ({
 									<ChecklistData
 										checklistData={addIEPData?.checkList}
 										onChange={(data) => {
-											setAddIEPData({
-												...addIEPData,
+											setAddIEPData((prevData) => ({
+												...prevData,
 												checkList: data,
-											})
+											}))
 										}}
 										readOnly={readOnly}
 										variants={variants}
@@ -128,10 +147,10 @@ const IEPForm = ({
 													addIEPData?.Evolution,
 												) !== JSON.stringify(data)
 											) {
-												setAddIEPData({
-													...addIEPData,
+												setAddIEPData((prevData) => ({
+													...prevData,
 													Evolution: data,
-												})
+												}))
 											}
 										}}
 										setComments={(data) => {
@@ -143,14 +162,14 @@ const IEPForm = ({
 													],
 												) !== JSON.stringify(data)
 											) {
-												setAddIEPData({
-													...addIEPData,
+												setAddIEPData((prevData) => ({
+													...prevData,
 													Evolution: {
-														...addIEPData.Evolution,
+														...prevData.Evolution,
 														[localizationConstants.comments]:
 															data,
 													},
-												})
+												}))
 											}
 										}}
 										readOnly={readOnly}
@@ -169,11 +188,11 @@ const IEPForm = ({
 													addIEPData?.AccommodationFromBoard,
 												) !== JSON.stringify(data)
 											) {
-												setAddIEPData({
-													...addIEPData,
+												setAddIEPData((prevData) => ({
+													...prevData,
 													AccommodationFromBoard:
 														data,
-												})
+												}))
 											}
 										}}
 										readOnly={readOnly}
@@ -189,10 +208,10 @@ const IEPForm = ({
 													addIEPData?.internalAccommodation,
 												) !== JSON.stringify(data)
 											) {
-												setAddIEPData({
-													...addIEPData,
+												setAddIEPData((prevData) => ({
+													...prevData,
 													internalAccommodation: data,
-												})
+												}))
 											}
 										}}
 										setComments={(title, data) => {
@@ -204,19 +223,19 @@ const IEPForm = ({
 													]?.comments,
 												) !== JSON.stringify(data)
 											) {
-												setAddIEPData({
-													...addIEPData,
+												setAddIEPData((prevData) => ({
+													...prevData,
 													internalAccommodation: {
-														...addIEPData.internalAccommodation,
+														...prevData.internalAccommodation,
 														[title]: {
-															...addIEPData
+															...prevData
 																?.internalAccommodation?.[
 																title
 															],
 															comments: data,
 														},
 													},
-												})
+												}))
 											}
 										}}
 										readOnly={readOnly}
@@ -232,10 +251,10 @@ const IEPForm = ({
 													addIEPData?.TransitionPlanning,
 												) !== JSON.stringify(data)
 											) {
-												setAddIEPData({
-													...addIEPData,
+												setAddIEPData((prevData) => ({
+													...prevData,
 													TransitionPlanning: data,
-												})
+												}))
 											}
 										}}
 										setComments={(title, data) => {
@@ -247,19 +266,19 @@ const IEPForm = ({
 													]?.comments,
 												) !== JSON.stringify(data)
 											) {
-												setAddIEPData({
-													...addIEPData,
+												setAddIEPData((prevData) => ({
+													...prevData,
 													TransitionPlanning: {
-														...addIEPData.TransitionPlanning,
+														...prevData.TransitionPlanning,
 														[title]: {
-															...addIEPData
+															...prevData
 																?.TransitionPlanning?.[
 																title
 															],
 															comments: data,
 														},
 													},
-												})
+												}))
 											}
 										}}
 										readOnly={readOnly}
@@ -275,10 +294,10 @@ const IEPForm = ({
 													addIEPData?.PlacementWithSEND,
 												) !== JSON.stringify(data)
 											) {
-												setAddIEPData({
-													...addIEPData,
+												setAddIEPData((prevData) => ({
+													...prevData,
 													PlacementWithSEND: data,
-												})
+												}))
 											}
 										}}
 										readOnly={readOnly}

@@ -460,10 +460,16 @@ const AIIEPTableList = ({
                                                     <Button
                                                         variant="contained"
                                                         size="small"
-                                                        onClick={(e) => {
-                                                            e.stopPropagation()
-                                                            navigate(`/dashboard/ai-iep/${row.user_id}`)
-                                                        }}
+                                                      // ✅ SAHI TARIKA (Isko copy-paste karein)
+onClick={(e) => {
+    e.stopPropagation();
+    navigate(`/dashboard/ai-iep/${row.studentId}`, {
+        state: {
+            studentId: row.studentId,       // Ye asli MongoDB ID bheja
+            academicYear: row.academicYear  // Ye sahi saal bheja
+        }
+    });
+}}
                                                         sx={{ textTransform: 'none', fontWeight: 600, bgcolor: '#3B82F6', '&:hover': { bgcolor: '#2563EB' } }}
                                                     >
                                                         AI IEP 🚀

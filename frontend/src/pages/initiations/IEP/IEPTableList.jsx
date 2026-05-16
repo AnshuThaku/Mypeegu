@@ -176,9 +176,14 @@
 // 										onMouseEnter={() => setHoveredRowIndex(index)}
 // 										onMouseLeave={() => setHoveredRowIndex(null)}
 // 										onClick={() => {
-// 											// Map exactly to the single detail BFF view utilizing modern useNavigate
+// 											// 🟢 UPDATED: Navigate to master IEP dashboard with studentId and academicYear
 // 											if (row.user_id) {
-// 												navigate(`/dashboard/initiations/IEP/${row.user_id}`)
+// 												navigate(`/dashboard/initiations/student-iep/${row.user_id}`, {
+// 													state: {
+// 														studentId: row.user_id,
+// 														academicYear: row.academicYear
+// 													}
+// 												})
 // 											}
 // 										}}
 // 										sx={tableStyles.bodyRow}
@@ -348,6 +353,7 @@ import { fetchAllStudentIEP, handleIepRecordDeletion } from './iEPFunctions'
 import { handleDownloadExcelForStudentIEP } from './iEPThunk'
 import EditIEPDialog from './EditIEPDialog'
 import { tableStyles } from '../../../components/styles/tableStyles'
+import { useNavigate } from 'react-router-dom'
 
 const IEPTableList = ({
     allStudentsForspecificSchool,
@@ -370,6 +376,7 @@ const IEPTableList = ({
     const { appPermissions } = useSelector((store) => store.dashboardSliceSetup)
     const [deleteDialog, setDeleteDialog] = useState(false)
     const [columns, setColumns] = useState(StudentIEPColumns)
+    const navigate = useNavigate()
 
     const handleSort = (columnName) => {
         const currentSortKey = sortKeys[0]
@@ -450,13 +457,18 @@ const IEPTableList = ({
                                         key={row._id || index}
                                         onMouseEnter={() => setHoveredRowIndex(index)}
                                         onMouseLeave={() => setHoveredRowIndex(null)}
-                                        onClick={() => {
-                                            // 🟢 ASLI FIX YAHAN HAI
-                                            // 1. Purane modal ko data dene ke liye ye zaroori hai
-                                            setRowDataSelected(row);
-                                            // 2. 'edit' bhejenge taaki parent component saal (year) check kare
-                                            handleModal('edit', true, row.user_id);
-                                        }}
+                                       onClick={() => {
+    const studentIdStr = row.studentId || row.user_id || row._id;
+    
+    // Traffic police route par bhejo with state
+    navigate(`/dashboard/initiations/student-iep/${studentIdStr}`, {
+        state: {
+            studentId: studentIdStr,
+            academicYear: row.academicYear,
+            rowDataSelected: row
+        }
+    });
+}}
                                         sx={{ ...tableStyles.bodyRow, cursor: 'pointer' }}
                                     >
                                         {columns.map((column) => (

@@ -1552,7 +1552,7 @@ class BaselineHelperService extends GlobalServices {
         const highImpactPredictors = [
             "grade2n3EmotionalQn7", "grade2n3CognitiveQn3", 
             "grade2n3EmotionalQn5", "grade2n3CognitiveQn2"
-            // Aap aage chal kar Excel sheets se ids yahan aur add kar sakte hain
+            // You can further add ids from Excel sheets here
         ];
 
         // Core & Important Predictors Multipliers Dictionary

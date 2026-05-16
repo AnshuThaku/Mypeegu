@@ -781,6 +781,7 @@ import { SELpdfViewTitle, presentationTools } from './SELpdfViewTitle'
 import myPeeguAxios from '../../../utils/myPeeguAxios'
 import { apiEndPoints, apiMethods } from '../../../utils/apiConstants'
 
+// 🟢 FIX 1: Correct .mjs worker for pdf.js v4+
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`
 
 const MONTHS_LIST = [
@@ -788,7 +789,6 @@ const MONTHS_LIST = [
   'July', 'August', 'September', 'October', 'November', 'December'
 ]
 
-// ── Theme ─────────────────────────────────────────────────────────────────────
 const THEME = {
   blue: '#1565c0', blueMid: '#1976d2', blueLight: '#e3f0fd', blueBorder: '#bbdefb',
   text: '#1a2340', textMuted: '#64748b', bg: '#f4f6fa', white: '#ffffff', border: '#e8edf4',
@@ -796,17 +796,17 @@ const THEME = {
 
 const BADGE_COLORS = ['#1565c0', '#0277bd', '#00838f', '#2e7d32', '#6a1b9a', '#ad1457', '#e65100']
 
-// 🔥 Zoom Logic
 const getDefaultZoom = (orientation) => {
   if (orientation === 'landscape') return 0.9 
   if (orientation === 'portrait')  return 2.1 
   return 0.9 
 }
 
-// 🔥 PDF Options (Streaming enable karne ke liye zaroori parameters)
 const pdfRenderOptions = {
-  disableAutoFetch: false,
-  disableStream: false
+  disableAutoFetch: true,
+  disableStream: false,
+  cMapUrl: `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/cmaps/`,
+  cMapPacked: true,
 };
 
 // ─── Highlighter Canvas ───────────────────────────────────────────────────────
@@ -929,11 +929,9 @@ const SELPdfViewDialog = ({ open, onClose }) => {
   const [selectedCategory, setSelectedCategory] = useState({})
   const [numPages, setNumPages] = useState(null)
   const [isPdfLoaded, setIsPdfLoaded] = useState(false)
-  const [openCollapsible, setOpenCollapsible] = useState({})
+  const [openCollapsible, setOpenCollapsible] = useState({ 'test-order': true }) // Default open test category
   
-  // 🟢 NAYA STATE: API loading track karne ke liye
   const [isPdfFetching, setIsPdfFetching] = useState(false)
-  
   const [zoom, setZoom] = useState(1.0)
   const [pdfOrientation, setPdfOrientation] = useState(null)
   const [pageDimensions, setPageDimensions] = useState({ width: 600, height: 800 })
@@ -949,8 +947,6 @@ const SELPdfViewDialog = ({ open, onClose }) => {
   
   const [currentMonthData, setCurrentMonthData] = useState(null)
   const [activeTool, setActiveTool] = useState(presentationTools.HAND)
-  
-  // 🔥 ACTIVE PAGE STATE: The heart of the virtualization
   const [activePage, setActivePage] = useState(1)
   
   const [clearTrigger, setClearTrigger] = useState(0)
@@ -1017,57 +1013,48 @@ const SELPdfViewDialog = ({ open, onClose }) => {
 
   useEffect(() => {
     if (currentMonthData?.categories?.length) {
-      const s = {}
+      const s = { ...openCollapsible }
       currentMonthData.categories.forEach((c) => { s[c.order] = true })
       setOpenCollapsible(s)
     }
   }, [currentMonthData?.categories])
 
-  // 🟢 MAIN CHANGE: API hit karne ke liye handleFileClick ko update kiya
   const handleFileClick = async (file, category) => {
     setIsPdfLoaded(false); setPdfOrientation(null); setZoom(1.0);
     setSelectedCategory((s) => ({ ...s, file, category }));
     setFileViewMode(true); setActiveTool(presentationTools.HAND); 
     setActivePage(1); 
     
-    // Skeleton dikhane ke liye fetching true kiya
+    // 🧪 TESTING MODE: Forced Static URL applied here
+    if (file.path === 'STATIC_TEST') {
+        setIsPdfFetching(false);
+        setSelectedPdfUrl('https://mypeegu-prodd.s3.ap-south-1.amazonaws.com/sel-modules/India/Year+1/may/G_1-2/SEL_Module_Y1_M2_G1-2.pdf');
+        return;
+    }
+
     setIsPdfFetching(true);
     setSelectedPdfUrl(''); 
-
     try {
-  // Remove extra leading slashes
-  const cleanPath = file.path.replace(/^\/+/, '');
-
-  // API call to backend for Presigned URL
-  const response = await myPeeguAxios.get(
-    `/counselor/v1/sel/view-pdf?fileName=${encodeURIComponent(cleanPath)}`
-  );
-
-  if (response?.data?.success && response.data.data?.url) {
-    // Secure Streamable URL
-    setSelectedPdfUrl(response.data.data.url);
-  } else {
-    // Fallback Direct S3 URL
-    setSelectedPdfUrl(`${baseURL}/${cleanPath}`);
-  }
-} catch (error) {
-  console.error("Failed to fetch secure PDF URL:", error);
-
-  // Fallback in case of network error
-  const cleanPath = file.path.replace(/^\/+/, '');
-  setSelectedPdfUrl(`${baseURL}/${cleanPath}`);
-} finally {
-  setIsPdfFetching(false);
-}
+      const response = await myPeeguAxios.get(`/counselor/v1/sel/view-pdf?fileName=${encodeURIComponent(file.path)}`);
+      if (response?.data?.success && response.data.data?.url) {
+        setSelectedPdfUrl(response.data.data.url);
+      } else {
+        setSelectedPdfUrl(`${baseURL}${file.path}`);
+      }
+    } catch (error) {
+      console.error("Failed to fetch secure PDF URL:", error);
+      setSelectedPdfUrl(`${baseURL}${file.path}`);
+    } finally {
+      setIsPdfFetching(false);
+    }
   }
 
-  // 🔥 IMPORTANT: rangeChunkSize allows pdf.js to fetch the 100MB file in 64kb chunks!
   const pdfFileObject = useMemo(() => {
     if (!selectedPdfUrl) return null;
     return {
       url: selectedPdfUrl,
       rangeChunkSize: 65536,
-      withCredentials: false // S3 pre-signed urls don't need credentials
+      withCredentials: false
     };
   }, [selectedPdfUrl]);
 
@@ -1087,9 +1074,7 @@ const SELPdfViewDialog = ({ open, onClose }) => {
         const pdf = await pdfjs.getDocument(pdfFileObject).promise
         const page = await pdf.getPage(1)
         const viewport = page.getViewport({ scale: 1 })
-        
         setPageDimensions({ width: viewport.width, height: viewport.height })
-        
         const orientation = viewport.width > viewport.height ? 'landscape' : 'portrait'
         setPdfOrientation(orientation)
         setZoom(getDefaultZoom(orientation))
@@ -1135,28 +1120,23 @@ const SELPdfViewDialog = ({ open, onClose }) => {
     return () => window.removeEventListener('keydown', fn)
   }, [fileViewMode, isPDF])
 
-  // 🔥 CORE FIX: Intersection Observer (LAPTOP BEAST MODE)
+  // 🟢 FIX 2: Accurate Intersection Observer (No Jumping)
   useEffect(() => {
     if (!fileViewMode || !numPages || !scrollContainerRef.current) return
+    
     const handler = (entries) => {
-      let maxRatio = 0; let best = -1
       entries.forEach((entry) => {
-        if (entry.isIntersecting && entry.intersectionRatio > maxRatio) {
-          maxRatio = entry.intersectionRatio
+        // Agar page thoda bhi dikh raha hai (30%), toh active ho jayega
+        if (entry.isIntersecting) {
           const i = pageRefs.current.findIndex((r) => r === entry.target)
-          if (i !== -1) best = i + 1
+          if (i !== -1) setActivePage(i + 1)
         }
       })
-      if (maxRatio > 0 && best !== -1) {
-        setActivePage((p) => p !== best ? best : p)
-      }
     }
     
     const obs = new IntersectionObserver(handler, {
       root: scrollContainerRef.current, 
-      threshold: [0.1, 0.3, 0.5, 0.8, 1.0], 
-      // 🔥 8000px scanner range for laptop speed
-      rootMargin: '8000px 0px 8000px 0px', 
+      threshold: 0.3, // No heavy margins, exact precision
     })
     
     pageRefs.current.forEach((r) => r && obs.observe(r))
@@ -1165,8 +1145,8 @@ const SELPdfViewDialog = ({ open, onClose }) => {
 
   const renderPdfSkeleton = () => (
     <Box sx={{ width: '100vw', height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f5f5f7' }}>
-      <CircularProgress sx={{ color: THEME.blueMid, mb: 2 }} />
-      <Typography sx={{ color: THEME.textMuted, fontWeight: 500 }}>Initializing Secure PDF Stream...</Typography>
+      <CircularProgress size={50} sx={{ color: THEME.blueMid, mb: 2 }} />
+      <Typography sx={{ color: THEME.textMuted, fontWeight: 600, fontSize: '16px' }}>Initializing Document...</Typography>
     </Box>
   )
 
@@ -1236,18 +1216,16 @@ const SELPdfViewDialog = ({ open, onClose }) => {
 
       {fileViewMode ? (
         <Box sx={{ flexGrow: 1, display: 'flex', overflow: 'hidden', backgroundColor: '#e9e9eb' }}>
-          
           <Box
             id="pdf-scroll-container"
             ref={scrollContainerRef}
             onContextMenu={(e) => e.preventDefault()}
             sx={{
               flexGrow: 1, overflow: 'auto', display: 'flex', flexDirection: 'column',
-              alignItems: 'center', gap: '30px', pt: '30px', pb: '40px',
+              alignItems: 'center', pt: '30px', pb: '40px',
               '&:active': { cursor: activeTool === presentationTools.HAND ? 'grabbing' : getPointerCursor() },
             }}
           >
-            {/* 🟢 NEW: Check loading state before rendering Document */}
             {isPdfFetching ? (
               renderPdfSkeleton()
             ) : isPDF && pdfFileObject ? (
@@ -1260,9 +1238,8 @@ const SELPdfViewDialog = ({ open, onClose }) => {
               >
                 {Array.from(new Array(numPages || 0), (_, i) => {
                   const pageNumber = i + 1;
-                  
-                  // 🔥 THE MAGIC WINDOW (LAPTOP MODE): Keep 21 pages in memory (Current ± 10)
-                  const isVisible = Math.abs(activePage - pageNumber) <= 10;
+                  // 🟢 FIX 3: Perfectly Balanced Memory Buffer (11 pages max)
+                  const isVisible = Math.abs(activePage - pageNumber) <= 5;
                   
                   return (
                   <Box
@@ -1270,11 +1247,17 @@ const SELPdfViewDialog = ({ open, onClose }) => {
                     id={`sel-pdf-page-${pageNumber}`}
                     ref={(el) => (pageRefs.current[i] = el)}
                     sx={{
-                      backgroundColor: '#fff', boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
-                      display: 'flex', justifyContent: 'center', alignItems: 'center',
-                      borderRadius: '2px', position: 'relative', overflow: 'hidden',
-                      minHeight: isVisible ? 'auto' : `${pageDimensions.height * zoom}px`,
-                      width: isVisible ? 'auto' : `${pageDimensions.width * zoom}px`,
+                      backgroundColor: '#fff', 
+                      boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+                      display: 'flex', 
+                      justifyContent: 'center', 
+                      alignItems: 'center',
+                      borderRadius: '2px', 
+                      position: 'relative', 
+                      overflow: 'hidden',
+                      minHeight: `${(pageDimensions?.height || 800) * zoom}px`,
+                      width: `${(pageDimensions?.width || 600) * zoom}px`,
+                      mb: '30px'
                     }}
                   >
                     {isVisible ? (
@@ -1286,13 +1269,7 @@ const SELPdfViewDialog = ({ open, onClose }) => {
                             clearTrigger={clearTrigger} undoTrigger={undoTrigger}
                           />
                         )}
-                        <Page 
-                           renderTextLayer={false} 
-                           renderAnnotationLayer={false} 
-                           pageNumber={pageNumber} 
-                           scale={zoom} 
-                           loading={<CircularProgress sx={{ color: THEME.blueMid }}/>} 
-                        />
+                        <Page renderTextLayer={false} renderAnnotationLayer={false} pageNumber={pageNumber} scale={zoom} />
                       </>
                     ) : (
                       <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
@@ -1316,13 +1293,9 @@ const SELPdfViewDialog = ({ open, onClose }) => {
             display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px',
           }}>
             <Box>
-              <Typography sx={{ fontWeight: 700, fontSize: '17px', color: THEME.text }}>
-                SEL Tracker
-              </Typography>
+              <Typography sx={{ fontWeight: 700, fontSize: '17px', color: THEME.text }}>SEL Tracker</Typography>
               {selectedCountry && !isLoadingSchools && (
-                <Typography sx={{ fontSize: '12px', color: THEME.textMuted, mt: '2px' }}>
-                  Region: {selectedCountry}
-                </Typography>
+                <Typography sx={{ fontSize: '12px', color: THEME.textMuted, mt: '2px' }}>Region: {selectedCountry}</Typography>
               )}
             </Box>
 
@@ -1337,14 +1310,10 @@ const SELPdfViewDialog = ({ open, onClose }) => {
                     </Select>
                   )}
                   <Select value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)} size="small" displayEmpty sx={{ fontSize: '13.5px', fontWeight: 600, color: THEME.text, borderRadius: '10px', backgroundColor: THEME.white, minWidth: '110px' }}>
-                    {availableYears.length === 0 ? (
-                      <MenuItem value="" disabled>No Years Assigned</MenuItem>
-                    ) : (
-                      availableYears.map((y) => (<MenuItem key={y} value={y}>{y}</MenuItem>))
-                    )}
+                    {availableYears.length === 0 ? <MenuItem value="" disabled>No Years Assigned</MenuItem> : availableYears.map((y) => <MenuItem key={y} value={y}>{y}</MenuItem>)}
                   </Select>
                   <Select value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} size="small" sx={{ fontSize: '13.5px', fontWeight: 600, color: THEME.text, borderRadius: '10px', backgroundColor: THEME.white, minWidth: '120px' }}>
-                    {allowedMonths.map((m) => (<MenuItem key={m} value={m}>{m}</MenuItem>))}
+                    {allowedMonths.map((m) => <MenuItem key={m} value={m}>{m}</MenuItem>)}
                   </Select>
                 </>
               )}
@@ -1357,6 +1326,16 @@ const SELPdfViewDialog = ({ open, onClose }) => {
             '&::-webkit-scrollbar': { width: '4px' }, '&::-webkit-scrollbar-track': { background: 'transparent' },
             '&::-webkit-scrollbar-thumb': { background: THEME.blueBorder, borderRadius: '10px' }, '&::-webkit-scrollbar-thumb:hover': { background: THEME.blueMid },
           }}>
+            {/* 🧪 TESTING CARD */}
+            <CategoryCard 
+              title="Testing & Debugging" emoji="🧪" 
+              files={[{ _id: 'test-file', fileName: 'G_1-2 | SEL_Module_Y1_M2_G1-2.pdf' }]} 
+              category={{ order: 'test-order', categoryName: 'Testing' }} 
+              onFileClick={() => handleFileClick({ path: 'STATIC_TEST', fileName: 'SEL_Module_Y1_M2_G1-2.pdf' }, { categoryName: 'Testing' })} 
+              isOpen={openCollapsible['test-order']} 
+              onToggle={() => toggleCollapsible('test-order')} badgeColor="#e91e63" 
+            />
+
             {currentMonthData?.categories?.map((category, idx) => (
               <CategoryCard key={category.order} title={category.categoryName} files={category.files} category={category} onFileClick={handleFileClick} isOpen={openCollapsible[category.order]} onToggle={() => toggleCollapsible(category.order)} badgeColor={BADGE_COLORS[idx % BADGE_COLORS.length]} />
             ))}

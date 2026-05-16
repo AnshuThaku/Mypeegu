@@ -459,7 +459,7 @@ const multer = require('multer')
 // Configure multer with memory storage and strict 5MB limit
 const upload = multer({ 
     storage: multer.memoryStorage(),
-    limits: { fileSize: 5 * 1024 * 1024 }
+    limits: {fileSize: 25 * 1024 * 1024 }
 })
 
 const {
@@ -627,6 +627,7 @@ router.post(
 // 🟢 BULLETPROOF IMPORT FIX
 // Route 1: PDF Upload ke saath AI Evaluation (ADVANCED)
 // 🟢 Route 1: PDF Upload ke saath AI Evaluation (DIRECT TO GEMINI)
+// 🟢 Route 1: PDF Upload ke saath AI Evaluation
 router.post(
     '/iep-ai-evaluate/:studentId',
     authMyPeeguUser,
@@ -638,6 +639,9 @@ router.post(
         }
 
         const { studentId } = req.params;
+        // 🟢 FIX 1: Frontend se body mein bheja gaya academicYear nikal rahe hain
+        const { academicYear } = req.body; 
+
         let query = { user_id: studentId };
         if (mongoose.Types.ObjectId.isValid(studentId)) {
             query = { $or: [{ _id: studentId }, { user_id: studentId }] };
@@ -646,8 +650,6 @@ router.post(
         const student = await Student.findOne(query).lean();
         if (!student) return res.status(404).json({ success: false, message: 'Student not found.' });
         const pureObjectId = student._id;
-
-        // ❌ Yahan se pdf-parse ka code poori tarah hata diya gaya hai!
 
         const [latestBaseline, checklistRecords, observationRecords] = await Promise.all([
             BaselineRecord.findOne({ $or: [{ studentId: pureObjectId }, { user_id: student.user_id }] }).sort({ createdAt: -1 }).lean(),
@@ -662,9 +664,8 @@ router.post(
             studentProfile: student 
         };
 
-        // 🟢 THE FIX: Gemini ko text ke bajaye direct PDF ka 'buffer' aur 'mimetype' bhej rahe hain
         const pdfBuffer = req.file.buffer;
-        const mimeType = req.file.mimetype; // ye 'application/pdf' hoga
+        const mimeType = req.file.mimetype; 
 
         const aiResult = await aiEvaluatorService.generateIEPAIContent(studentData, pdfBuffer, mimeType);
 
@@ -672,11 +673,12 @@ router.post(
              return res.status(500).json({ success: false, message: 'AI failed to process the evaluation. Please try again.' });
         }
 
-        // --- UPSERT RECORD ---
+        // 🟢 FIX 2: query mein 'academicYear' add kiya, taaki exact saal ka record update ho
         const updatedIEP = await IEPRecord.findOneAndUpdate(
-            { studentId: pureObjectId },
+            { studentId: pureObjectId, academicYear: academicYear }, 
             { 
                 $set: { 
+                    academicYear: academicYear, // Explicitly save kar rahe hain
                     evaluationDetails: aiResult.evaluationData,
                     plopAnalysis: aiResult.plopAnalysis,        
                     supportNeeds: aiResult.supportNeeds,        
@@ -691,12 +693,15 @@ router.post(
     })
 );
 
-// Route 2: Generate IEP AI (Bina PDF) (UPDATED)
+// 🟢 Route 2: Generate IEP AI (Bina PDF) 
 router.post(
     '/generate-iep-ai',
     authMyPeeguUser,
     asyncMiddleware(async (req, res) => {
-        const { studentId } = req.body;
+        
+        // 🟢 FIX 3: Yahan bhi academicYear extract kiya
+        const { studentId, academicYear } = req.body; 
+        
         let query = { user_id: studentId };
         if (mongoose.Types.ObjectId.isValid(studentId)) {
             query = { $or: [{ _id: studentId }, { user_id: studentId }] };
@@ -714,11 +719,12 @@ router.post(
 
         const aiResult = await aiEvaluatorService.generateIEPAIContent(studentData, null);
 
-        // 🟢 FIXED: Saare fields yahan bhi update honge
+        // 🟢 FIX 4: Yahan bhi query aur set dono jagah academicYear lagaya
         const updatedIEP = await IEPRecord.findOneAndUpdate(
-            { studentId: pureObjectId },
+            { studentId: pureObjectId, academicYear: academicYear }, 
             { 
                 $set: { 
+                    academicYear: academicYear,
                     evaluationDetails: aiResult.evaluationData,
                     plopAnalysis: aiResult.plopAnalysis,
                     supportNeeds: aiResult.supportNeeds,
@@ -731,8 +737,9 @@ router.post(
 
         res.status(200).json({ success: true, data: updatedIEP });
     })
-)
+);
 
+// Route 3: Get Student 360 (No changes needed here)
 router.post(
     '/iep-student-360',
     authMyPeeguUser,
@@ -742,7 +749,8 @@ router.post(
         const data = await iep360Service.getStudent360Profile(studentId, academicYear);
         res.status(200).json({ success: true, data: data });
     })
-)
+);
+
 
 router.post(
     '/iep-records',

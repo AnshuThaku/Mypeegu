@@ -129,7 +129,7 @@ class BaselineAnalyticService extends BaselineHelperService {
 	async singleStudentBaselineAnalytics(req, res) {
     const { academicYear, studentId, baselineCategory } = req.body;
     
-    // 1. Current Record uthao (Inclusion of Strength Fields)
+    // 1. Get current record (Inclusion of Strength Fields)
     const baselineRecord = await BaselineRecord.findOne(
         { academicYear, studentId: studentId, baselineCategory },
         {
@@ -144,8 +144,8 @@ class BaselineAnalyticService extends BaselineHelperService {
             Emotional: 1,
             Cognitive: 1,
             Language: 1,
-            overallStrengthScore: 1, // 🟢 Naya Field
-            overallAdjustedRisk: 1    // 🟢 Naya Field
+            overallStrengthScore: 1, // 🟢 New Field
+            overallAdjustedRisk: 1    // 🟢 New Field
         }
     ).populate([
         { path: 'school', select: '_id school' },
@@ -155,7 +155,7 @@ class BaselineAnalyticService extends BaselineHelperService {
 
     if (!baselineRecord) return res.status(200).json({});
 
-    // 2. Previous Record dhundo Trends ke liye
+    // 2. Find previous record for trends
     const previousRecord = await BaselineRecord.findOne({
         studentId: studentId,
         baselineCategory: baselineCategory,
@@ -178,7 +178,7 @@ class BaselineAnalyticService extends BaselineHelperService {
         Language: calculateTrend(baselineRecord.Language.total, previousRecord?.Language?.total),
     };
 
-    // Baki rank ka logic jo aapne likha tha...
+    // Remaining ranking logic as written
     const { data: schoolWiseReport, totalStudents: totalStudentsInSchool } = await this.getBaselineRecordsRankwise(baselineCategory, baselineRecord?.school, studentId);
     // ... (rest of your ranking logic)
 
@@ -187,9 +187,9 @@ class BaselineAnalyticService extends BaselineHelperService {
         school: baselineRecord?.school?.school,
         className: baselineRecord?.classRoomId?.className,
         section: baselineRecord?.classRoomId?.section,
-        overallStrengthScore: baselineRecord.overallStrengthScore || 0, // 🟢 Bhejna zaroori hai
-        trends: trends, // 🟢 Frontend Arrows ke liye
-        ...baselineRecord._doc // Saara domain data
+        overallStrengthScore: baselineRecord.overallStrengthScore || 0, // 🟢 Must be sent
+        trends: trends, // 🟢 For frontend arrows
+        ...baselineRecord._doc // All domain data
     };
 
     res.status(200).json({ baselineAnalyticsData: data });
@@ -223,24 +223,24 @@ class BaselineAnalyticService extends BaselineHelperService {
         if (!req.user.isAdmin) {
             query.school = { $in: req.user.assignedSchools }
         } else if (!query.school) {
-             // Agar admin hai aur school filter nahi lagaya, toh saare schools ka data
+             // If user is admin and school filter is not applied, then get data from all schools
             query.school = { $in: await BaselineRecord.distinct('school') }
         }
 
-        // 1. Asli jadoo is pipeline ke andar hoga (Humein isko update karna padega)
+        // 1. The actual logic is inside this pipeline (We need to update this)
         const schoolDataFromPipeLine = await this.AllSchoolsAggregationPipeline(query)
 
         const rankedArray = this.assignRanks(schoolDataFromPipeLine, 'overallPercentageofSchools')
 
-        // 2. 🟢 Frontend KPI Dashboard ke liye extra data nikaalna
-        // Agar school select hua hai, toh hum pehle school ka strength score bhejenge
+        // 2. 🟢 Extract extra data for frontend KPI dashboard
+        // If school is selected, then we will first send school's strength score
         const overallStrengthScore = rankedArray.length > 0 
             ? rankedArray.reduce((acc, school) => acc + (school.overallStrengthScore || 0), 0) 
             : 0;
 
         return res.json({
             domainWisePercentagesOfEachSchool: rankedArray,
-            // 🟢 NAYA: Ye fields frontend ke KPI cards ko 0 se value par le aayengi
+            // 🟢 NEW: These fields will take KPI cards from 0 to value
             overallStrengthScore: overallStrengthScore, 
             studentsScreened: rankedArray.length > 0 ? rankedArray[0].totalStudentsScreened : 0,
             totalStrength: rankedArray.length > 0 ? rankedArray[0].totalSchoolStrength : 0
@@ -264,7 +264,7 @@ class BaselineAnalyticService extends BaselineHelperService {
             ...query,
         }
 
-        // 🟢 FIX 1: Frontend kabhi array bhejta hai, usko safely handle kiya
+        // 🟢 FIX 1: Frontend sometimes sends array, we handled it safely
         const safeSchoolId = Array.isArray(schoolIds) ? schoolIds[0] : schoolIds;
 
         if (filter && (!safeSchoolId || safeSchoolId === 'all')) {
@@ -279,7 +279,7 @@ class BaselineAnalyticService extends BaselineHelperService {
             query.school = { $in: await BaselineRecord.distinct('school') }
         }
 
-        // 🟢 FIX 2: safeSchoolId ko yahan use kiya taaki ObjectId crash na ho
+        // 🟢 FIX 2: Used safeSchoolId here to avoid ObjectId crash
         if (safeSchoolId) {
             groupingDataQuery.school = new mongoose.Types.ObjectId(safeSchoolId)
         }
@@ -290,7 +290,7 @@ class BaselineAnalyticService extends BaselineHelperService {
             }
         }
 
-        // 🟢 FIX 3: yahan bhi safeSchoolId pass kiya
+        // 🟢 FIX 3: Also passed safeSchoolId here
         const isSchoolExist = await Schools.findOne({
             _id: safeSchoolId, 
         }).select('_id school scCode studentCountInSchool')
@@ -601,7 +601,7 @@ class BaselineAnalyticService extends BaselineHelperService {
     //             }
     //         }
 
-    //         // 🟢 NAYA LOGIC: Tiers ke basis par Support Level nikalna
+    //         // 🟢 NEW LOGIC: Extract Support Level based on Tiers
     //         const pipeline = [
     //             { $match: baselineQuery },
     //             {
@@ -733,7 +733,7 @@ class BaselineAnalyticService extends BaselineHelperService {
                     $group: {
                         _id: '$studentId',
                         classRoomId: { $first: '$classRoomId' },
-                        // 🟢 FIX 1: Strength fields ko group stage mein capture karein
+                        // 🟢 FIX 1: Capture strength fields in group stage
                         overallStrengthScore: { $first: '$overallStrengthScore' },
                         overallAdjustedRisk: { $first: '$overallAdjustedRisk' },
                         Physical: { $first: '$Physical.total' },
@@ -768,7 +768,7 @@ class BaselineAnalyticService extends BaselineHelperService {
                         studentName: '$student.studentName',
                         className: { $ifNull: ['$classroom.className', '-'] },
                         section: { $ifNull: ['$classroom.section', '-'] },
-                        // 🟢 FIX 2: Final output mein project karein
+                        // 🟢 FIX 2: Project in final output
                         overallStrengthScore: { $ifNull: ["$overallStrengthScore", 0] },
                         overallAdjustedRisk: { $ifNull: ["$overallAdjustedRisk", 0] },
                         Physical: 1,
@@ -1038,7 +1038,7 @@ class BaselineAnalyticService extends BaselineHelperService {
                                 { $cond: [{ $lte: [{ $toInt: '$Language.total' }, 3] }, 1, 0] },
                             ],
                         },
-                        // 🟢 FIX 1: Frontend ke liye fields populate karein
+                        // 🟢 FIX 1: Populate fields for frontend
                         overallStrengthScore: { $ifNull: ["$overallStrengthScore", 0] },
                         overallAdjustedRisk: { $ifNull: ["$overallAdjustedRisk", 0] },
                         
@@ -1086,7 +1086,7 @@ class BaselineAnalyticService extends BaselineHelperService {
                         section: '$classroom.section',
                         redDomainCount: 1,
                         redDomains: 1,
-                        // 🟢 FIX 2: Project naye fields in output
+                        // 🟢 FIX 2: Project new fields in output
                         overallStrengthScore: 1,
                         overallAdjustedRisk: 1,
                         Physical: '$Physical.total',
@@ -1101,7 +1101,7 @@ class BaselineAnalyticService extends BaselineHelperService {
 
             const students = await BaselineRecord.aggregate(pipeline)
 
-            // 🟢 FIX 3: Summary mein Resilience statistics bhi add karein
+            // 🟢 FIX 3: Also add Resilience statistics in summary
             const summary = {
                 total: students.length,
                 resilientCount: students.filter(s => s.overallStrengthScore >= 10).length, // Students with shield

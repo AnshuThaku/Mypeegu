@@ -742,12 +742,12 @@ export default function Dashboard() {
           routePath: routePaths.initiationsIEP,
           enable: isPermissionOfTeacher,
         },
-        {
-          id: 999,
-          name: "AI IEP",
-          routePath: routePaths.aiIep,
-          enable: false,
-        },
+        // {
+        //   id: 999,
+        //   name: "AI IEP",
+        //   routePath: routePaths.aiIep,
+        //   enable: false,
+        // },
         {
           id: 14,
           name: localizationConstants.gandt,

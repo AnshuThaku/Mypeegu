@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { useParams, useNavigate } from 'react-router-dom'; // 🟢 useNavigate import kiya
+import { useParams, useNavigate } from 'react-router-dom'; 
 import { Box, Grid, Paper, Avatar, Typography, Button, Tabs, Tab, IconButton, Chip, Snackbar, Alert } from '@mui/material';
 import { 
   VisibilityOutlined, AssignmentOutlined, InsertChartOutlined, TrackChangesOutlined, 
@@ -73,7 +73,7 @@ const AIIEPDashboard = ({ studentId: propStudentId, academicYear = '2025-2026', 
   const { studentId: paramStudentId } = useParams();
   const studentId = propStudentId || paramStudentId;
   const dispatch = useDispatch();
-  const navigate = useNavigate(); // 🟢 Router Navigation Add kiya
+  const navigate = useNavigate(); 
   const [tabIndex, setTabIndex] = useState(0); 
 
   const { student360Data, is360Loading, isUploadingPDF } = useSelector((state) => state.iep360);
@@ -88,12 +88,11 @@ const AIIEPDashboard = ({ studentId: propStudentId, academicYear = '2025-2026', 
   const [isIepGenerated, setIsIepGenerated] = useState(false);
   const [toast, setToast] = useState({ open: false, message: '', severity: 'success' });
 
-  // 🟢 NAYA FUNCTION: Dashboard band karne ke liye
   const handleCloseDashboard = () => {
     if (onClose) {
-      onClose(); // Agar modal me khula hai
+      onClose(); 
     } else {
-      navigate('/dashboard/ai-iep'); // Agar full page me khula hai toh wapas list pe jao
+      navigate('/dashboard/ai-iep'); 
     }
   };
 
@@ -120,14 +119,42 @@ const AIIEPDashboard = ({ studentId: propStudentId, academicYear = '2025-2026', 
 
   const handleFileChange = (e) => { if (e.target.files && e.target.files.length > 0) setSelectedFile(e.target.files[0]); };
   
+  // 🟢 SAFETY LOCK 1: Upload ke baad turant DB refetch karo
+ // 🟢 FIX 1: Upload mein .catch() add kiya taaki crash na ho
+  // 🟢 FIX: FormData mein academicYear attach kar diya
   const handleUpload = () => {
     if (!selectedFile) return;
     const formData = new FormData();
     formData.append('diagnosticReport', selectedFile);
-    dispatch(uploadIEPEvaluationPDF({ studentId, formData }));
+    formData.append('academicYear', academicYear); // 🟢 YAHAN FIX HAI! Backend ko exact saal bata rahe hain
+
+    dispatch(uploadIEPEvaluationPDF({ studentId, formData }))
+      .unwrap()
+      .then(() => {
+         // Upload successful hone ke baad DB se fresh data lao
+         dispatch(fetchStudent360Data({ studentId, academicYear }));
+      })
+      .catch((err) => {
+         console.error("Upload Error:", err);
+         setToast({ open: true, message: 'Failed to process PDF. Please check server.', severity: 'error' });
+      });
   };
-  
-  const handleGenerateIEP = () => { setTabIndex(2); dispatch(generateIEPWithAI({ studentId })); };
+  // 🟢 FIX 2: Generate mein bhi .catch() add kiya taaki [object Object] na aaye
+  const handleGenerateIEP = () => { 
+      setTabIndex(2); 
+      dispatch(generateIEPWithAI({ studentId }))
+        .unwrap()
+        .then(() => {
+            setToast({ open: true, message: 'IEP Generated & Saved Successfully!', severity: 'success' });
+            // REFETCH FROM DB
+            dispatch(fetchStudent360Data({ studentId, academicYear }));
+        })
+        .catch((err) => {
+            console.error("Generation Error:", err);
+            setToast({ open: true, message: 'Failed to generate IEP. AI might be busy.', severity: 'error' });
+        });
+  };
+
   const handleGoalChange = (index, field, value) => {
     const updatedGoals = [...editableGoals];
     updatedGoals[index] = { ...updatedGoals[index], [field]: value };
@@ -137,16 +164,39 @@ const AIIEPDashboard = ({ studentId: propStudentId, academicYear = '2025-2026', 
     setEditableSupport(prev => ({ ...prev, [category]: { ...prev[category], [field]: value } }));
   };
   const handleCloseToast = () => setToast({ ...toast, open: false });
+  
+  // 🟢 SAFETY LOCK 3: Data Delete Hone Se Bachana
+  // 🟢 SAFETY LOCK 3: Data Delete Hone Se Bachana (String Bug Fixed)
   const handleSaveIEP = async () => {
     try {
-      await dispatch(saveIEPData({ studentId, academicYear, plopAnalysis: editablePlop, aiGeneratedGoals: editableGoals, supportNeeds: editableSupport })).unwrap();
+      // Pata lagao ki Evolution proper object hai ya purani string ("No")
+      const safeEvolution = (typeof iepData?.Evolution === 'object' && iepData.Evolution !== null) 
+          ? iepData.Evolution 
+          : {};
+
+      await dispatch(saveIEPData({ 
+        studentId, 
+        academicYear, 
+        plopAnalysis: editablePlop, 
+        aiGeneratedGoals: editableGoals, 
+        supportNeeds: editableSupport,
+        // AI data direct bhej rahe hain
+        aiEvaluationSummary: iepData?.aiEvaluationSummary || "",
+        evaluationDetails: iepData?.evaluationDetails || {},
+        // Safe Evolution object bhej rahe hain taaki string wala crash na ho
+        Evolution: {
+            ...safeEvolution,
+            aiEvaluationSummary: iepData?.aiEvaluationSummary || "",
+            evaluationDetails: iepData?.evaluationDetails || {}
+        }
+      })).unwrap();
+      
       setToast({ open: true, message: 'Awesome! IEP Data saved successfully! 🎉', severity: 'success' });
     } catch (error) {
       setToast({ open: true, message: 'Oops! Failed to save data. Please try again.', severity: 'error' });
     }
   };
 
-  // 🟢 EMPTY STATE: If no studentId is present in URL or props, show a clean message.
   if (!studentId) {
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '80vh', p: 4 }}>
@@ -183,7 +233,6 @@ const AIIEPDashboard = ({ studentId: propStudentId, academicYear = '2025-2026', 
       {isUploadingPDF && <MyPeeguAILoader message={aiMessage} isOverlay={true} />}
 
       <Box sx={{ position: 'absolute', right: 16, top: 16, zIndex: 10 }}>
-        {/* 🟢 CLOSE BUTTON UPDATED */}
         <IconButton onClick={handleCloseDashboard} sx={{ bgcolor: '#FFFFFF', '&:hover': { bgcolor: '#F1F5F9' }, boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}><Close /></IconButton>
       </Box>
 
@@ -216,7 +265,6 @@ const AIIEPDashboard = ({ studentId: propStudentId, academicYear = '2025-2026', 
                 <Tab icon={<SettingsSuggestOutlined fontSize="small" />} label="Support" iconPosition="start" />
               </Tabs>
 
-              {/* 🟢 TAB 0: OBSERVATIONS (Medical-Grade Dashboard) */}
               <TabPanel value={tabIndex} index={0}>
                 {(!observationData || observationData.length === 0) ? (
                   <Box sx={{ textAlign: 'center', py: 8, bgcolor: '#F8FAFC', borderRadius: '16px', border: '1px dashed #CBD5E1' }}>
@@ -236,7 +284,6 @@ const AIIEPDashboard = ({ studentId: propStudentId, academicYear = '2025-2026', 
 
                     {observationData.map((obs, idx) => {
                       
-                      // Helper Function: Generates the Badges dynamically based on exact backend string
                       const getStatusBadge = (statusObj) => {
                         if (!statusObj || !statusObj.status) return null;
                         const status = statusObj.status;
@@ -255,7 +302,6 @@ const AIIEPDashboard = ({ studentId: propStudentId, academicYear = '2025-2026', 
                         );
                       };
 
-                      // Helper Component: Renders each individual metric card
                       const MetricCard = ({ title, data }) => {
                         if (!data) return null;
                         return (
@@ -293,7 +339,6 @@ const AIIEPDashboard = ({ studentId: propStudentId, academicYear = '2025-2026', 
                             </Typography>
                           </Box>
 
-                          {/* SECTION 1: CLASSROOM PRESENCE & TASK PERFORMANCE */}
                           <SectionHeader title="Classroom Presence & Tasks" />
                           <Grid container spacing={2}>
                             <MetricCard title="Punctuality" data={obs.punctuality} />
@@ -304,7 +349,6 @@ const AIIEPDashboard = ({ studentId: propStudentId, academicYear = '2025-2026', 
                             <MetricCard title="Ability To Work Independently" data={obs.abilityToWorkIndependently} />
                           </Grid>
 
-                          {/* SECTION 2: BEHAVIOR & SPEECH */}
                           <SectionHeader title="Behavior & Speech" />
                           <Grid container spacing={2}>
                             <MetricCard title="Appearance" data={obs.appearance} />
@@ -313,14 +357,12 @@ const AIIEPDashboard = ({ studentId: propStudentId, academicYear = '2025-2026', 
                             <MetricCard title="Speech" data={obs.speech} />
                           </Grid>
 
-                          {/* SECTION 3: EMOTIONAL STATUS */}
                           <SectionHeader title="Emotional Status" />
                           <Grid container spacing={2}>
                             <MetricCard title="Affect / Mood" data={obs.affetcOrMood} />
                             <MetricCard title="Thought Process" data={obs.thoughtProcessOrForm} />
                           </Grid>
 
-                          {/* SECTION 4: INCIDENTAL NOTE */}
                           <SectionHeader title="Incidental Note" />
                           <Grid container spacing={2}>
                             <MetricCard title="Incidental / Additional Note" data={obs.incedentalOrAdditionalNote} />
@@ -333,7 +375,6 @@ const AIIEPDashboard = ({ studentId: propStudentId, academicYear = '2025-2026', 
                 )}
               </TabPanel>
 
-              {/* 🟢 EVALUATION TAB */}
               <TabPanel value={tabIndex} index={1}>
                 <EvaluationTab selectedFile={selectedFile} handleFileChange={handleFileChange} handleUpload={handleUpload} isUploadingPDF={isUploadingPDF} aiEvaluationSummary={iepData} iepData={iepData} />
               </TabPanel>

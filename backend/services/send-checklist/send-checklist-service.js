@@ -841,17 +841,17 @@ class SendChecklistServices extends SendChecklistHelperService {
             return res.status(400).json(new FailureResponse(globalConstants.messages.sendCheckListRecordAlreadyExists))
         }
 
-        // 🟢 ASLI FIX YAHAN HAI: Ye line miss ho gayi thi aapke code me!
+        // 🟢 ACTUAL FIX IS HERE: This line was missing in your code!
         const finalCategoriesData = this.processCategories({ checklistForm, categories })
 
         // --- STEP 1: Process Categories ---
         finalCategoriesData.forEach((cat, index) => {
             // 🟢 CATEGORY NAME MAPPING
-            // Agar 'category' nahi hai lekin 'categoryName' aayi hai, toh use map kardo
+            // If 'category' is not present but 'categoryName' came, then map it
             if (!cat.category && cat.categoryName) {
                 cat.category = cat.categoryName;
             } 
-            // Agar dono nahi aaye hain, toh index ke hisaab se default naam daal do
+            // If both are not present, then assign default name based on index
             else if (!cat.category && !cat.categoryName) {
                 const standardCategories = [
                     "Attention", "Memory", "Fine Motor and Gross Motor Skill", 

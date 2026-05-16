@@ -594,6 +594,7 @@ const StudentIEP = lazy(() => import('./pages/initiations/IEP/StudentIEP'))
 // Isko update karein (File name match hona chahiye)
 const StudentAIIEP = lazy(() => import('./pages/initiations/IEP/AIIEP/StudentAIIEP'))
 const AIIEPDashboard = lazy(() => import('./pages/initiations/IEP/AIIEP/AIIEPDashboard'))
+const IEPMasterDashboard = lazy(() => import('./pages/initiations/IEP/IEPMasterDashboard'))
 
 const GandT = lazy(() => import('./pages/initiations/gandt/ComingSoon'))
 
@@ -751,7 +752,9 @@ const App = () => {
               
               <Route path={routePaths.initiationsIEP} element={<Suspense fallback={loading}><StudentIEP /></Suspense>} />
               
-              {/* 🟢 Route path for the new AI IEP module */}
+              {/* 🟢 MASTER IEP DASHBOARD - Traffic Police Pattern */}
+              {/* This route acts as a wrapper that decides between legacy and AI IEP based on academicYear */}
+<Route path="initiations/student-iep/:studentId" element={<Suspense fallback={loading}><IEPMasterDashboard /></Suspense>} />              
 {/* 🟢 1. Pehle List View (Jahan Purple Button hai) */}
 <Route path={routePaths.aiIep} element={<Suspense fallback={loading}><StudentAIIEP /></Suspense>} />
 
