@@ -1019,7 +1019,7 @@ const SELPdfViewDialog = ({ open, onClose }) => {
     }
   }, [currentMonthData?.categories])
 
-  const handleFileClick = async (file, category) => {
+ const handleFileClick = async (file, category) => {
     setIsPdfLoaded(false); setPdfOrientation(null); setZoom(1.0);
     setSelectedCategory((s) => ({ ...s, file, category }));
     setFileViewMode(true); setActiveTool(presentationTools.HAND); 
@@ -1034,16 +1034,25 @@ const SELPdfViewDialog = ({ open, onClose }) => {
 
     setIsPdfFetching(true);
     setSelectedPdfUrl(''); 
+
+    // 🟢 FIX HERE: URL path ko sanitize karein (Multiple slashes ko single slash banayein)
+    // Agar path '//sel' se shuru ho rha hai, toh use '/sel' bana dega
+    let cleanPath = file.path ? file.path.replace(/\/+/g, '/') : '';
+    if (cleanPath && !cleanPath.startsWith('/')) {
+      cleanPath = '/' + cleanPath;
+    }
+
     try {
-      const response = await myPeeguAxios.get(`/counselor/v1/sel/view-pdf?fileName=${encodeURIComponent(file.path)}`);
+      // API call mein bhi encoded cleanPath bhejenge
+      const response = await myPeeguAxios.get(`/counselor/v1/sel/view-pdf?fileName=${encodeURIComponent(cleanPath)}`);
       if (response?.data?.success && response.data.data?.url) {
         setSelectedPdfUrl(response.data.data.url);
       } else {
-        setSelectedPdfUrl(`${baseURL}${file.path}`);
+        setSelectedPdfUrl(`${baseURL}${cleanPath}`);
       }
     } catch (error) {
       console.error("Failed to fetch secure PDF URL:", error);
-      setSelectedPdfUrl(`${baseURL}${file.path}`);
+      setSelectedPdfUrl(`${baseURL}${cleanPath}`); // Fallback with clean path
     } finally {
       setIsPdfFetching(false);
     }
